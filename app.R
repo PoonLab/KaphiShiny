@@ -1,7 +1,9 @@
 library(shiny)
 library(Kaphi)
+library(phylocanvas)
+library(epiwidgets)
 
-distributions = list(
+distributions <- list(
   "exp" = list(
     "rate" = list("Lower" = 0, "Upper" = Inf, "Default" = 1)
   ),
@@ -10,208 +12,129 @@ distributions = list(
     "shape" = list("Lower" = 0, "Upper" = Inf, "Default" = 1)
   ),
   "lnorm" = list(
-    "mean" = list(
-      "Lower" = 0,
-      "Upper" = Inf,
-      "Default" = 1
-    ),
-    "sd" = list(
-      "Lower" = 0,
-      "Upper" = Inf,
-      "Default" = 1
-    )
+    "mean" = list("Lower" = 0, "Upper" = Inf, "Default" = 1),
+    "sd" = list("Lower" = 0, "Upper" = Inf, "Default" = 1)
   ),
   "norm" = list(
-    "mean" = list(
-      "Lower" = 0,
-      "Upper" = Inf,
-      "Default" = 1
-    ),
-    "sd" = list(
-      "Lower" = 0,
-      "Upper" = Inf,
-      "Default" = 1
-    )
+    "mean" = list("Lower" = 0, "Upper" = Inf, "Default" = 1),
+    "sd" = list("Lower" = 0, "Upper" = Inf, "Default" = 1)
   )
 )
 
-ConstantCoalescent = list(
-  Ne.tau = distributions
-)
-
-SIRD = list(
-  beta = distributions,
-  gamma = distributions,
-  mu = distributions
-)
-
-SIRND =list(
-  beta = distributions,
-  gamma = distributions
-)
-
-SIS = list(
-  beta = distributions,
-  gamma = distributions,
-  mu = distributions
-)
-
-SEIR = list(
-  beta = distributions,
-  gamma = distributions,
-  mu = distributions, 
-  alpha = distributions
-)
-
-Yule = list(
-  lambda = distributions
-)
-
-BirthDeath = list(
-  lambda = distributions,
-  mu = distributions
-)  
-
-BiSSE = list(
-  lambda0 = distributions,
-  lambda1 = distributions,
-  mu0 = distributions,
-  mu1 = distributions,
-  q01 = distributions,
-  q10 = distributions
-)
-
-
-MuSSE = list(
-  lambda1 = distributions,
-  lambda2 = distributions,
-  lambda3 = distributions,
-  mu1 = distributions,
-  mu2 = distributions,
-  mu3 = distributions,
-  q12 = distributions,
-  q13 = distributions,
-  q21 = distributions,
-  q23 = distributions,
-  q31 = distributions,
-  q32 = distributions
-)
-
-QuaSSE = list(
-  lambda = distributions,
-  mu = distributions,
-  char = distributions
-) 
-
-GeoSSE = list(
-  sA = distributions,
-  sB = distributions,
-  sAB = distributions,
-  xA = distributions,
-  xB = distributions,
-  dA = distributions,
-  dB = distributions
-)
-
-BiSSness = list(
-  lambda0 = distributions,
-  lambda1 = distributions,
-  mu0 = distributions,
-  mu1 = distributions,
-  q01 = distributions,
-  q10 = distributions,
-  p0c = distributions,
-  p0a = distributions,
-  p1c = distributions,
-  p1a = distributions
-)
-
-ClaSSE = list(
-  lambda111 = distributions,
-  lambda112 = distributions,
-  lambda122 = distributions,
-  lambda211 = distributions,
-  lambda212 = distributions,
-  lambda222 = distributions,
-  mu1 = distributions,
-  mu2 = distributions,
-  q12 = distributions,
-  q21 = distributions
-)
-
-models = list(
+models <- list(
   "Coalescent" = list(
-    "Constant Coalescent" = list(
-      "Priors" = ConstantCoalescent,
-      "Proposals" = ConstantCoalescent
-    )
+    "Constant Coalescent"
   ),
   "Compartmental" = list(
-    "Susceptible-Infected-Removed-Dynamic (SIRD)" = list(
-      "Priors" = SIRD,
-      "Proposals" = SIRD
-    ),
-    "Susceptible-Infected-Removed-Non-Dynamic (SIRND)" = list(
-      "Priors" = SIRND,
-      "Proposals" = SIRND
-    ),
-    "Susceptible-Exposed-Infected-Removed (SEIR)" = list(
-      "Priors" = SEIR,
-      "Proposals" = SEIR
-    ),
-    "Susceptible-Infected-Susceptible (SIS)" = list(
-      "Priors" = SIS,
-      "Proposals" = SIS
-    )
+    "SIRD",
+    "SIRND",
+    "SEIR",
+    "SIS"
   ),
-  "Networks" = list(),
+  "Networks" = list(
+  ),
   "Speciation" = list(
-    "Yule" = list(
-      "Priors" = Yule,
-      "Proposals" = Yule
-    ), 
-    "Birth-Death" = list(
-      "Priors" = BirthDeath,
-      "Proposals" = BirthDeath
-    ),
-    "Binary State Speciation Extinction (BiSSE)" = list(
-      "Priors" = BiSSE,
-      "Proposals" = BiSSE
-    ),
-    "MuSSE"
-    "QuaSSE" = list(
-      "Priors" = QuaSSE,
-      "Proposals" = QuaSSE
-    ),
-    "GeoSSE" = list(
-      "Priors" = GeoSSE,
-      "Proposals" = GeoSSE
-    ),
-    "BiSS-ness" = list(
-      "Priors" = BiSSness,
-      "Proposals" = BiSSness
-    ),
-    "ClaSSE" = list(
-      "Priors" = ClaSSE,
-      "Proposals" = ClaSSE
-    )
+    "Yule", 
+    "Birth-Death",
+    "BiSSE",
+    "MuSSE",
+    "QuaSSE",
+    "GeoSSE",
+    "BiSS-ness",
+    "ClaSSE"
   )
 )
 
 parameters <- list(
+  "Constant Coalescent" = list(
+    "Ne.tau"
+  ),
+  "SIRD" = list(
+    "beta",
+    "gamma",
+    "mu"
+  ),
+  "SIRND" = list(
+    "beta",
+    "gamma"
+  ),
+  "SEIR" = list(
+    "beta",
+    "gamma",
+    "mu", 
+    "alpha" 
+  ),
+  "SIS" = list(
+    "beta",
+    "gamma",
+    "mu"
+  ),
+  "Yule" = list(
+    "lambda"
+  ), 
+  "Birth-Death" = list(
+    "lambda",
+    "mu" 
+  ),
+  "BiSSE" = list(
+    "lambda0",
+    "lambda1",
+    "mu0",
+    "mu1",
+    "q01",
+    "q10"
+  ),
   "MuSSE" = list(
-    'lambda1' = 'Speciation rgit ate for class 1', 
-    'lambda2' = 'Speciation rate for class 2',
-    'lambda3', 
-    'mu1',
-    'mu2',
-    'mu3',
-    'q12',
-    'q13',
-    'q21',
-    'q23',
-    'q31',
-    'q32',
+    "lambda1", 
+    "lambda2",
+    "lambda3", 
+    "mu1",
+    "mu2",
+    "mu3",
+    "q12",
+    "q13",
+    "q21",
+    "q23",
+    "q31",
+    "q32"
+  ),
+  "QuaSSE" = list(
+    "lambda",
+    "mu",
+    "char"
+  ),
+  "GeoSSE" = list(
+    "sA",
+    "sB",
+    "sAB",
+    "xA",
+    "xB",
+    "dA",
+    "dB"
+  ),
+  "BiSS-ness" = list(
+    "lambda0",
+    "lambda1",
+    "mu0",
+    "mu1",
+    "q01",
+    "q10",
+    "p0c",
+    "p0a",
+    "p1c",
+    "p1a" 
+  ),
+  "ClaSSE" = list(
+    "lambda111",
+    "lambda112",
+    "lambda122",
+    "lambda211",
+    "lambda212",
+    "lambda222",
+    "mu1",
+    "mu2",
+    "q12",
+    "q21"
   )
 )
 
