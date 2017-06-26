@@ -178,18 +178,7 @@ models = list(
       "Priors" = BiSSE,
       "Proposals" = BiSSE
     ),
-    "MuSSE" = c('lambda1', 
-                  'lambda2',
-                  'lambda3', 
-                  'mu1',
-                  'mu2',
-                  'mu3',
-                  'q12',
-                  'q13',
-                  'q21',
-                  'q23',
-                  'q31',
-                  'q32'),
+    "MuSSE"
     "QuaSSE" = list(
       "Priors" = QuaSSE,
       "Proposals" = QuaSSE
@@ -206,6 +195,23 @@ models = list(
       "Priors" = ClaSSE,
       "Proposals" = ClaSSE
     )
+  )
+)
+
+parameters <- list(
+  "MuSSE" = list(
+    'lambda1' = 'Speciation rgit ate for class 1', 
+    'lambda2' = 'Speciation rate for class 2',
+    'lambda3', 
+    'mu1',
+    'mu2',
+    'mu3',
+    'q12',
+    'q13',
+    'q21',
+    'q23',
+    'q31',
+    'q32',
   )
 )
 
