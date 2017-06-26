@@ -1,24 +1,13 @@
 library(shiny)
+library(Kaphi)
 
 distributions = list(
   "exp" = list(
-    "rate" = list(
-      "Lower" = 0,
-      "Upper" = Inf,
-      "Default" = 1
-    )
+    "rate" = list("Lower" = 0, "Upper" = Inf, "Default" = 1)
   ),
   "gamma" = list(
-    "rate" = list(
-      "Lower" = 0,
-      "Upper" = Inf,
-      "Default" = 1
-    ),
-    "shape" = list(
-      "Lower" = 0,
-      "Upper" = Inf,
-      "Default" = 1
-    )
+    "rate" = list("Lower" = 0, "Upper" = Inf, "Default" = 1),
+    "shape" = list("Lower" = 0, "Upper" = Inf, "Default" = 1)
   ),
   "lnorm" = list(
     "mean" = list(
@@ -91,6 +80,7 @@ BiSSE = list(
   q01 = distributions,
   q10 = distributions
 )
+
 
 MuSSE = list(
   lambda1 = distributions,
@@ -188,10 +178,18 @@ models = list(
       "Priors" = BiSSE,
       "Proposals" = BiSSE
     ),
-    "MuSSE" = list(
-      "Priors" = MuSSE,
-      "Proposals" = MuSSE
-    ),
+    "MuSSE" = c('lambda1', 
+                  'lambda2',
+                  'lambda3', 
+                  'mu1',
+                  'mu2',
+                  'mu3',
+                  'q12',
+                  'q13',
+                  'q21',
+                  'q23',
+                  'q31',
+                  'q32'),
     "QuaSSE" = list(
       "Priors" = QuaSSE,
       "Proposals" = QuaSSE
