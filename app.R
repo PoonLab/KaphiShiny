@@ -1,7 +1,6 @@
 library(shiny)
 library(Kaphi)
 library(phylocanvas)
-library(epiwidgets)
 
 distributions <- list(
   "exp" = list(
@@ -187,15 +186,24 @@ ui <- fluidPage(
         # Tab for Tree Plot
         tabPanel(
           title = "Tree Plot",
-          textInput(inputId = "treeTitle", label = "Enter Tree Title"),
+          selectInput(
+            inputId = "treeFormat", 
+            label = "Tree Format", 
+            choices = c(
+              Rectangular = "rectangular",
+              Circular = "circular",
+              Radial = "radial",
+              Hierarchical = "hierarchical"
+            )
+          ),
           fluidRow(
             column(
               6,
-              sliderInput("width", "Plot Width (px)", min = 0, max = 10000, value = 500)
+              sliderInput("width", "Panel Width (px)", min = 0, max = 10000, value = 500)
             ),
             column(
               6,
-              sliderInput("height", "Plot Height (px)", min = 0, max = 10000, value = 500)
+              sliderInput("height", "Panel Height (px)", min = 0, max = 10000, value = 500)
             )
           ),
           uiOutput("tree.ui")
@@ -259,14 +267,14 @@ server <- function(input, output) {
   )
   
   # Plotting Newick Input
-  output$tree <- renderPlot({
+  output$tree <- renderPhylocanvas({
     if (is.null(newickInput$data)) return()
-    plot(newickInput$data, main = input$treeTitle)
+    phylocanvas(newickInput$data, treetype = input$treeFormat)
   })
   
   # Rendering Newick Input
   output$tree.ui <- renderUI({
-    plotOutput("tree", width = input$width, height = input$height)
+    phylocanvasOutput("tree", width = input$width, height = input$height)
   })
   
   # Initializing SMC Settings
