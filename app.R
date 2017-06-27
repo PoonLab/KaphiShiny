@@ -199,11 +199,11 @@ ui <- fluidPage(
           fluidRow(
             column(
               6,
-              sliderInput("width", "Panel Width (px)", min = 0, max = 10000, value = 500)
+              sliderInput("width", "Panel Width (px)", min = 1, max = 10000, value = 1000)
             ),
             column(
               6,
-              sliderInput("height", "Panel Height (px)", min = 0, max = 10000, value = 500)
+              sliderInput("height", "Panel Height (px)", min = 1, max = 10000, value = 1000)
             )
           ),
           uiOutput("tree.ui")
