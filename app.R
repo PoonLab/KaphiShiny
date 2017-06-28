@@ -31,6 +31,7 @@ models <- list(
     "SIS"
   ),
   "Networks" = list(
+    "Coming Soon"
   ),
   "Speciation" = list(
     "Yule", 
@@ -139,7 +140,7 @@ parameters <- list(
 
 ui <- fluidPage(
   
-  # Page Title
+  # Page title
   titlePanel(
     title = h1(strong("Kaphi"), "- Kernel-embedded ABC-SMC for phylodynamic inference"),
     windowTitle = "Kaphi - Kernel-embedded ABC-SMC for phylodynamic inference"
@@ -148,10 +149,10 @@ ui <- fluidPage(
   sidebarLayout(
     
     sidebarPanel( 
-      # Allowing Independent Scrolling in the Sidebar
+      # Allowing independent scrolling in the sidebar
       id = "sidebarPanel",
-      style = "overflow-y:scroll; max-height:600px",
-      # Row for Newick Text/File Input 
+      style = "overflow-y:scroll; max-height:90vh",
+      # Row for newick text/file input 
       fluidRow(
         h3(strong(em("Newick Input"))),
         textInput(inputId = "newickString", label = "Enter a Newick String"), 
@@ -159,7 +160,7 @@ ui <- fluidPage(
         actionButton(inputId = "processString", label = "Process String"),
         actionButton(inputId = "processFile", label = "Process File")
       ),
-      # Row for Configuration Creation
+      # Row for configuration creation
       fluidRow(
         h3(strong(em("SMC Settings Initialization"))),
         numericInput(inputId = "particleNumber", label = "Number of Particles", value = 1000),
@@ -171,11 +172,25 @@ ui <- fluidPage(
         numericInput(inputId = "stepTolerance", label = "Step Tolerance", value = 1e-5),
         actionButton(inputId = "initializeSMCSettings", label = "Initialize SMC Settings")
       ),
-      # Row for Model Selection and Initialization
+      # Row for model selection and initialization
       fluidRow(
-        h3(strong(em("Model Selection and Initialization")))
+        h3(strong(em("Model Selection and Initialization"))),
+        selectInput("generalModel", "General Model", names(models)),
+        selectInput("specificModel", "Specific Model", models[[1]]),
+        tabsetPanel(
+          # Tab for priors
+          tabPanel(
+            title = "Priors",
+            uiOutput("priors")
+          ),
+          # Tab for proposals
+          tabPanel(
+            title = "Proposals",
+            uiOutput("proposals")
+          )
+        )
       ),
-      # Row for Running Simulation
+      # Row for running simulation
       fluidRow(
         h3(strong(em("Running Simulation")))
       )
@@ -183,7 +198,7 @@ ui <- fluidPage(
     
     mainPanel(
       tabsetPanel(
-        # Tab for Tree Plot
+        # Tab for tree plot
         tabPanel(
           title = "Tree Plot",
           selectInput(
@@ -206,13 +221,13 @@ ui <- fluidPage(
               sliderInput("height", "Panel Height (px)", min = 1, max = 10000, value = 1000)
             )
           ),
-          uiOutput("tree.ui")
+          uiOutput("treeVisualization")
         ), 
-        # Tab for Prior Distributions
+        # Tab for prior distributions
         tabPanel(title = "Prior Distributions"), 
-        # Tab for Feedback/Diagnosis
+        # Tab for feedback/diagnosis
         tabPanel(title = "Feedback/Diagnosis"),
-        # Tab for Simulation Results
+        # Tab for simulation results
         tabPanel(title = "Simulation Results")
       )
     )
@@ -221,7 +236,7 @@ ui <- fluidPage(
   
 )  
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   newickInput <- reactiveValues(data = NULL)
   
@@ -242,14 +257,14 @@ server <- function(input, output) {
     quality=0.95,
     step.tolerance=1e-5,
     
-    # kernel settings
+    # Kernel settings
     decay.factor=0.2,
     rbf.variance=2.0,
     sst.control=1.0,
     norm.mode='MEAN'
   )
   
-  # Reading Tree from Newick String
+  # Reading tree from newick string
   observeEvent(
     input$processString,
     {
@@ -257,7 +272,7 @@ server <- function(input, output) {
     }
   )
   
-  # Reading Tree from Newick File
+  # Reading tree from newick file
   observeEvent(
     input$processFile,
     {
@@ -266,18 +281,18 @@ server <- function(input, output) {
     }
   )
   
-  # Plotting Newick Input
+  # Plotting newick input
   output$tree <- renderPhylocanvas({
     if (is.null(newickInput$data)) return()
     phylocanvas(newickInput$data, treetype = input$treeFormat)
   })
   
-  # Rendering Newick Input
-  output$tree.ui <- renderUI({
+  # Rendering newick input
+  output$treeVisualization <- renderUI({
     phylocanvasOutput("tree", width = input$width, height = input$height)
   })
   
-  # Initializing SMC Settings
+  # Initializing SMC settings
   observeEvent(
     input$initializeSMCSettings,
     {
@@ -290,6 +305,17 @@ server <- function(input, output) {
       config$step.tolerance <- input$stepTolerance
     }
   )
+  
+  # Handling general and specific model selection
+  observe({
+    updateSelectInput(session, "specificModel", choices = models[[input$generalModel]])
+  })
+  
+  # Displaying priors for a specific model in a dropdown menu
+  output$priors <- renderUI({selectInput(inputId = "priorsDropdown", label = NULL, choices = parameters[[input$specificModel]])})
+    
+  # Displaying proposals for a specific model in a dropdown menu
+  output$proposals <- renderUI({selectInput(inputId = "proposalsDropdown", label = NULL, choices = parameters[[input$specificModel]])})
   
 }
 
