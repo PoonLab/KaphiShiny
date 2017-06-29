@@ -181,12 +181,12 @@ ui <- fluidPage(
           # Tab for priors
           tabPanel(
             title = "Priors",
-            uiOutput("priors")
+            uiOutput("priorsTabs")
           ),
           # Tab for proposals
           tabPanel(
             title = "Proposals",
-            uiOutput("proposals")
+            uiOutput("proposalsTabs")
           )
         )
       ),
@@ -311,11 +311,49 @@ server <- function(input, output, session) {
     updateSelectInput(session, "specificModel", choices = models[[input$generalModel]])
   })
   
-  # Displaying priors for a specific model in a dropdown menu
-  output$priors <- renderUI({selectInput(inputId = "priorsDropdown", label = NULL, choices = parameters[[input$specificModel]])})
+  # Displaying priors for a specific model in tabs
+  output$priorsTabs <- renderUI({
+    nTabs = length(parameters[[input$specificModel]])
+    tabs = lapply(seq_len(nTabs), function(i) {
+      tabPanel(
+        paste0(parameters[[input$specificModel]][[i]]),
+        uiOutput(paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]]))
+      )
+    })
+    do.call(tabsetPanel, tabs)
+  })
+  
+  # Creating inputs for each specific prior
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      output[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]])]] <- renderUI({
+        distribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+        selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
+      })
+    })
+  )
     
-  # Displaying proposals for a specific model in a dropdown menu
-  output$proposals <- renderUI({selectInput(inputId = "proposalsDropdown", label = NULL, choices = parameters[[input$specificModel]])})
+  # Displaying proposals for a specific model in tabs
+  output$proposalsTabs <- renderUI({
+    nTabs = length(parameters[[input$specificModel]])
+    tabs = lapply(seq_len(nTabs), function(i) {
+      tabPanel(
+        paste0(parameters[[input$specificModel]][[i]]),
+        uiOutput(paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]]))
+      )
+    })
+    do.call(tabsetPanel, tabs)
+  })
+  
+  # Creating inputs for each specific proposal
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      output[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]])]] <- renderUI({
+        distribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+        selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
+      })
+    })
+  )
   
 }
 
