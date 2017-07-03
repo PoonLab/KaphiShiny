@@ -327,8 +327,19 @@ server <- function(input, output, session) {
   observe(
     lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
       output[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]])]] <- renderUI({
-        distribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+        distribution = paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
         selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
+        nNumericInputs = length(distributions[[input$distribution]])
+        numericInputs = lapply(seq_len(nNumericInputs), function(i) {
+          numericInput(
+            inputId = paste0(distribution, input$distribution, distributions[[input$distribution]][[i]]), 
+            label = paste0(distributions[[input$distribution]][[i]]), 
+            value = distributions[[input$distribution]][[i]][[3]], 
+            max = distributions[[input$distribution]][[i]][[2]],
+            min = distributions[[input$distribution]][[i]][[1]]
+          )
+        })
+        do.call(wellPanel, numericInputs)
       })
     })
   )
@@ -348,8 +359,8 @@ server <- function(input, output, session) {
   # Creating inputs for each specific proposal
   observe(
     lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
-      output[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]])]] <- renderUI({
-        distribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+      output[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]])]] <- renderUI({ 
+        distribution = paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
         selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
       })
     })
