@@ -323,25 +323,37 @@ server <- function(input, output, session) {
     do.call(tabsetPanel, tabs)
   })
   
-  # Creating inputs for each specific prior
+  # Creating a distribution  drop down menu input for each specific prior
   observe(
     lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
       output[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]])]] <- renderUI({
         distribution = paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
         selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
-        nNumericInputs = length(distributions[[input$distribution]])
+        uiOutput(paste0(distribution, "Parameters"))
+      })
+    }),
+    priority = 100
+  )
+  
+  # Creating a series of numeric inputs for each prior's distribution parameters
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      distribution = paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+      output[[paste0(distribution, "Parameters")]] <- renderUI({
+        nNumericInputs = length(distributions[[input[[distribution]]]])
         numericInputs = lapply(seq_len(nNumericInputs), function(i) {
           numericInput(
-            inputId = paste0(distribution, input$distribution, distributions[[input$distribution]][[i]]), 
-            label = paste0(distributions[[input$distribution]][[i]]), 
-            value = distributions[[input$distribution]][[i]][[3]], 
-            max = distributions[[input$distribution]][[i]][[2]],
-            min = distributions[[input$distribution]][[i]][[1]]
+            inputId = paste0(distribution, input[[distribution]], distributions[[input[[distribution]]]][[i]]),
+            label = paste0(distributions[[input[[distribution]]]][[i]]),
+            value = distributions[[input[[distribution]]]][[i]][[3]],
+            max = distributions[[input[[distribution]]]][[i]][[2]],
+            min = distributions[[input[[distribution]]]][[i]][[1]]
           )
         })
         do.call(wellPanel, numericInputs)
       })
-    })
+    }),
+    priority = 99
   )
     
   # Displaying proposals for a specific model in tabs
