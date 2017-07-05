@@ -4,26 +4,25 @@ library(phylocanvas)
 
 models <- list(
   "Coalescent" = list(
-    "Constant Coalescent"
+    Constant = "const.coalescent"
   ),
   "Compartmental" = list(
-    "SIRD",
-    "SIRND",
-    "SEIR",
-    "SIS"
+    SIRD = "sir.dynamic",
+    SIRND = "sir.nondynamic",
+    SEIR = "seir",
+    SIS = "sis"
   ),
   "Networks" = list(
-    "Coming Soon"
   ),
   "Speciation" = list(
-    "Yule", 
-    "Birth-Death",
-    "BiSSE",
-    "MuSSE",
-    "QuaSSE",
-    "GeoSSE",
-    "BiSS-ness",
-    "ClaSSE"
+    Yule = "yule", 
+    BirthDeath = "bd",
+    BiSSE = "bisse",
+    MuSSE = "musse",
+    QuaSSE = "quasse",
+    GeoSSE = "geosse",
+    BiSSness = "bisseness",
+    ClaSSE  = "classe"
   )
 )
 
