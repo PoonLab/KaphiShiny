@@ -48,15 +48,17 @@ ui <- fluidPage(
         actionButton(inputId = "processString", label = "Process String"),
         actionButton(inputId = "processFile", label = "Process File")
       ),
-      # Row for model selection and configuration form download
+      # Row for model selection 
       fluidRow(
-        h3(strong(em("Model Selection and Configuration Form Download"))),
+        h3(strong(em("Model Selection"))),
         selectInput("generalModel", "General Model", names(models)),
         selectInput("specificModel", "Specific Model", models[[1]])
       ),
-      # Row for configuration upload
+      # Row for configuration download and upload
       fluidRow(
-        h3(strong(em("Configuration Upload")))
+        h3(strong(em("SMC Configuration Download and Upload"))),
+        downloadButton(outputId = "downloadDefaultConfigurationForm", label = "Download Default Configuration Form"),
+        fileInput(inputId = "uploadConfigurationForm", label = "Upload Configuration Form")
       ),
       # Row for running simulation
       fluidRow(
@@ -140,6 +142,18 @@ server <- function(input, output, session) {
   observe({
     updateSelectInput(session, "specificModel", choices = models[[input$generalModel]])
   })
+  
+  # Downloading the config file corresponding to the choosen specific model
+  output$downloadDefaultConfigurationForm <- downloadHandler(
+    filename = function() {
+      paste0(input$specificModel, ".yaml")
+    },
+    content = function(file) {
+      file.copy(paste0("configs/", input$specificModel, ".yaml"), file)
+    }
+  )
+  
+  # Handling config file upload by the user
   
 }
 
