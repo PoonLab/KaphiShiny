@@ -57,13 +57,14 @@ ui <- fluidPage(
       # Row for configuration download and upload
       fluidRow(
         h3(strong(em("SMC Configuration Download and Upload"))),
-        downloadButton(outputId = "downloadDefaultConfigurationForm", label = "Download Default Configuration Form"),
-        fileInput(inputId = "uploadConfigurationForm", label = "Upload Configuration Form")
-      ),
-      # Row for running simulation
-      fluidRow(
-        h3(strong(em("Running Simulation")))
+        downloadButton(outputId = "downloadDefaultConfigurationFile", label = "Download Default Configuration File"),
+        fileInput(inputId = "configFile", label = "Upload Configuration File")
       )
+      # ,
+      # fluidRow(
+      #   h3(strong(em("Run ABC-SMC"))),
+      #   actionButton(inputId = "runABC-SMC", label = "Run ABC-SMC")
+      # )
     ),
     
     mainPanel(
@@ -94,7 +95,13 @@ ui <- fluidPage(
           uiOutput("treeVisualization")
         ), 
         # Tab for prior distributions
-        tabPanel(title = "Prior Distributions"), 
+        tabPanel(
+          title = "Prior Distributions"
+          # ,
+          # sliderInput("priorDistsPlotWidth", "Plot Width (px)", min = 1, max = 10000, value = 1000),
+          # sliderInput("priorDistsPlotHeight", "Plot Height (px)", min = 1, max = 10000, value = 1000),
+          # plotOutput(outputId = "priorDistsPlot", width = "100%", height = "400px")
+        ), 
         # Tab for feedback/diagnosis
         tabPanel(title = "Feedback/Diagnosis"),
         # Tab for simulation results
@@ -110,6 +117,9 @@ server <- function(input, output, session) {
   
   newickInput <- reactiveValues(data = NULL)
   
+  # result <- list()
+  # workspace <- list()
+  
   # Reading tree from newick string
   observeEvent(
     input$processString,
@@ -122,8 +132,8 @@ server <- function(input, output, session) {
   observeEvent(
     input$processFile,
     {
-      inFile <- input$newickFile
-      newickInput$data <- read.tree(inFile$datapath)
+      newickFile <- input$newickFile
+      newickInput$data <- read.tree(newickFile$datapath)
     }
   )
   
@@ -144,7 +154,7 @@ server <- function(input, output, session) {
   })
   
   # Downloading the config file corresponding to the choosen specific model
-  output$downloadDefaultConfigurationForm <- downloadHandler(
+  output$downloadDefaultConfigurationFile <- downloadHandler(
     filename = function() {
       paste0(input$specificModel, ".yaml")
     },
@@ -154,6 +164,28 @@ server <- function(input, output, session) {
   )
   
   # Handling config file upload by the user
+  observeEvent(
+    input$uploadConfigurationForm,
+    {
+      # Load configuration file
+      configFile <- input$configFile
+      config <- load.config(configFile$datapath)
+      config <- set.model(config, input$specificModel)
+      # Load tree input
+      if (is.null(newickInput$data)) return()
+      obs.tree <- newickInput$data
+      obs.tree <- parse.input.tree(obs.tree, config)
+      # Initialize workspace
+      ws <- init.workspace(obs.tree, config)
+      # Run ABC-SMC 
+      res <- run.smc(ws, model=input$specificModel, verbose=F)
+    }
+  )
+  
+  # Running ABC-SMC
+  # observeEvent(
+  #   
+  # )
   
 }
 
