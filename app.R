@@ -159,28 +159,16 @@ server <- function(input, output, session) {
     input$configFile,
     {
       # Load configuration file
-      output$test1 <- renderText({
-        paste0("models")
-      })
       configFile <- input$configFile
       config <- load.config(configFile$datapath)
       config <- set.model(config, input$specificModel)
-      output$test2 <- renderText({
-        paste0(config$priors$Ne.tau)
-      })
       # Load tree input
       if (is.null(newickInput$data)) return()
       obs.tree <- newickInput$data
-      output$test3 <- renderText({
-        paste0(.to.newick(obs.tree))
-      })
-      tree <- ladderize(obs.tree)
-      tree <- .rescale.tree(obs.tree, config$norm.mode)
-      # obs.tree$kernel <- tree.kernel(obs.tree, obs.tree, lambda=config$decay.factor, sigma=config$rbf.variance, rho=config$sst.control, normalize=0)
-      # obs.tree <- parse.input.tree(obs.tree, config)
-      # # Initialize workspace
-      # ws <- init.workspace(obs.tree, config)
-      # # Run ABC-SMC 
+      obs.tree <- parse.input.tree(obs.tree, config)
+      # Initialize workspace
+      ws <- init.workspace(obs.tree, config)
+      # Run ABC-SMC
       # res <- run.smc(ws, model=input$specificModel, verbose=F)
     }
   )
