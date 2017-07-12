@@ -58,14 +58,8 @@ ui <- fluidPage(
       fluidRow(
         h3(strong(em("SMC Configuration Download and Upload"))),
         downloadButton(outputId = "downloadDefaultConfigurationFile", label = "Download Default Configuration File"),
-        fileInput(inputId = "configFile", label = "Upload Configuration File"),
-        actionButton(inputId = "processConfig", label = "Process Configuration File")
+        fileInput(inputId = "configFile", label = "Upload Configuration File")
       )
-      # ,
-      # fluidRow(
-      #   h3(strong(em("Run ABC-SMC"))),
-      #   actionButton(inputId = "runABC-SMC", label = "Run ABC-SMC")
-      # )
     ),
     
     mainPanel(
@@ -98,12 +92,9 @@ ui <- fluidPage(
         # Tab for prior distributions
         tabPanel(
           title = "Prior Distributions",
-          # ,
-          # sliderInput("priorDistsPlotWidth", "Plot Width (px)", min = 1, max = 10000, value = 1000),
-          # sliderInput("priorDistsPlotHeight", "Plot Height (px)", min = 1, max = 10000, value = 1000),
-          # plotOutput(outputId = "priorDistsPlot", width = "100%", height = "400px")
           verbatimTextOutput(outputId = "test1"),
-          verbatimTextOutput(outputId = "test2")
+          verbatimTextOutput(outputId = "test2"),
+          verbatimTextOutput(outputId = "test3")
         ), 
         # Tab for feedback/diagnosis
         tabPanel(title = "Feedback/Diagnosis"),
@@ -119,9 +110,6 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   newickInput <- reactiveValues(data = NULL)
-  
-  # result <- list()
-  # workspace <- list()
   
   # Reading tree from newick string
   observeEvent(
@@ -168,7 +156,7 @@ server <- function(input, output, session) {
   
   # Handling config file upload by the user
   observeEvent(
-    input$processConfig,
+    input$configFile,
     {
       # Load configuration file
       output$test1 <- renderText({
@@ -183,6 +171,12 @@ server <- function(input, output, session) {
       # Load tree input
       if (is.null(newickInput$data)) return()
       obs.tree <- newickInput$data
+      output$test3 <- renderText({
+        paste0(.to.newick(obs.tree))
+      })
+      tree <- ladderize(obs.tree)
+      tree <- .rescale.tree(obs.tree, config$norm.mode)
+      # obs.tree$kernel <- tree.kernel(obs.tree, obs.tree, lambda=config$decay.factor, sigma=config$rbf.variance, rho=config$sst.control, normalize=0)
       # obs.tree <- parse.input.tree(obs.tree, config)
       # # Initialize workspace
       # ws <- init.workspace(obs.tree, config)
@@ -190,11 +184,6 @@ server <- function(input, output, session) {
       # res <- run.smc(ws, model=input$specificModel, verbose=F)
     }
   )
-  
-  # Running ABC-SMC
-  # observeEvent(
-  #   
-  # )
   
 }
 
