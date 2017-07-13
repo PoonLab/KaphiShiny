@@ -91,7 +91,8 @@ ui <- fluidPage(
         ), 
         # Tab for prior distributions
         tabPanel(
-          title = "Prior Distributions",
+          title = "Priors Distributions",
+          uiOutput(outputId = "priorsDistributionsPlots"),
           verbatimTextOutput(outputId = "test1"),
           verbatimTextOutput(outputId = "test2"),
           verbatimTextOutput(outputId = "test3")
@@ -162,6 +163,22 @@ server <- function(input, output, session) {
       configFile <- input$configFile
       config <- load.config(configFile$datapath)
       config <- set.model(config, input$specificModel)
+      # Plotting prior distributions (heavily inspired by plot.smc.config)
+      y <- rbind(sapply(1:1000, function(x) sample.priors(config)))
+      h <- apply(y, 1, hist, plot=F)
+      s <- 1 
+      output$priorsDistributionsPlots <- renderUI({
+        nTabs = length(names(config$priors))
+        tabs = lapply(seq_len(nTabs), function(i) {
+          tabPanel(
+            paste0(names(config$priors)[[i]]),
+            q <- quantile(y[s,], c(0.05, 0.95)),
+            plot(h[[s]], xlab=names(h)[s], main='Sample from prior distribution', xlim=q),
+            s <- s + 1
+          )
+        })
+        do.call(tabsetPanel, tabs)
+      })   
       # Load tree input
       if (is.null(newickInput$data)) return()
       obs.tree <- newickInput$data
