@@ -92,10 +92,7 @@ ui <- fluidPage(
         # Tab for prior distributions
         tabPanel(
           title = "Priors Distributions",
-          uiOutput(outputId = "priorsDistributionsPlots"),
-          verbatimTextOutput(outputId = "test1"),
-          verbatimTextOutput(outputId = "test2"),
-          verbatimTextOutput(outputId = "test3")
+          uiOutput(outputId = "priorsDistributionsPlots")
         ), 
         # Tab for feedback/diagnosis
         tabPanel(title = "Feedback/Diagnosis"),
@@ -172,13 +169,20 @@ server <- function(input, output, session) {
         tabs = lapply(seq_len(nTabs), function(i) {
           tabPanel(
             paste0(names(config$priors)[[i]]),
-            q <- quantile(y[s,], c(0.05, 0.95)),
-            plot(h[[s]], xlab=names(h)[s], main='Sample from prior distribution', xlim=q),
-            s <- s + 1
+            plotOutput(outputId = paste0(names(config$priors)[[i]], "Plot"))
           )
         })
         do.call(tabsetPanel, tabs)
-      })   
+      })
+      observe(
+        lapply(seq_len(length(names(config$priors))), function(i) {
+          q <- quantile(y[s,], c(0.05, 0.95))
+          output[[paste0(names(config$priors)[[i]], "Plot")]] <- renderPlot(
+            plot(h[[s]], xlab=names(h)[s], main='Sample from prior distribution', xlim=q)
+          )
+          s <- s + 1
+        })
+      )
       # Load tree input
       if (is.null(newickInput$data)) return()
       obs.tree <- newickInput$data
