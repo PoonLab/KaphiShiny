@@ -162,7 +162,7 @@ server <- function(input, output, session) {
       config <- set.model(config, input$specificModel)
       # Plotting prior distributions (heavily inspired by plot.smc.config)
       y <- rbind(sapply(1:1000, function(x) sample.priors(config)))
-      h <- apply(y, 1, hist, plot=F) 
+      h <- apply(y, 1, density) 
       output$priorsDistributionsPlots <- renderUI({
         nTabs = length(names(config$priors))
         tabs = lapply(seq_len(nTabs), function(i) {
@@ -175,8 +175,9 @@ server <- function(input, output, session) {
       })
       observe(
         lapply(seq_len(length(names(config$priors))), function(i) {
+          q <- quantile(y[i,], c(0.05, 0.95))
           output[[paste0(names(config$priors)[[i]], "Plot")]] <- renderPlot(
-            plot(h[[i]], xlab=names(h)[i], main=paste0('Sample prior distribution of ', names(config$priors)[[i]]))
+            plot(h[[i]], xlab=names(h)[i], main=paste0('Sample prior distribution of ', names(config$priors)[[i]]), xlim=q)
           )
         })
       )
