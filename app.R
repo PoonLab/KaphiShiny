@@ -177,7 +177,7 @@ server <- function(input, output, session) {
         lapply(seq_len(length(names(config$priors))), function(i) {
           q <- quantile(y[i,], c(0.05, 0.95))
           output[[paste0(names(config$priors)[[i]], "Plot")]] <- renderPlot(
-            plot(h[[i]], xlab=names(h)[i], main=paste0('Sample prior distribution of ', names(config$priors)[[i]]), xlim=q)
+            plot(h[[i]], xlab=names(h)[i], main=paste0("Sample prior distribution of ", names(config$priors)[[i]]), xlim=q)
           )
         })
       )
@@ -188,7 +188,7 @@ server <- function(input, output, session) {
       # Initialize workspace
       ws <- init.workspace(obs.tree, config)
       # Run ABC-SMC
-      # res <- run.smc(ws, model=input$specificModel, verbose=F)
+      res <- run.smc(ws, trace.file = "tmp/output.tsv", model=input$specificModel)
     }
   )
   
