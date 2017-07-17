@@ -315,9 +315,11 @@ server <- function(input, output, session) {
   output$priorsTabs <- renderUI({
     nTabs = length(parameters[[input$specificModel]])
     tabs = lapply(seq_len(nTabs), function(i) {
+      distribution = paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
       tabPanel(
         paste0(parameters[[input$specificModel]][[i]]),
-        uiOutput(paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]]))
+        uiOutput(paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]])),
+        uiOutput(paste0(distribution, "Parameters"))
       )
     })
     do.call(tabsetPanel, tabs)
@@ -329,7 +331,6 @@ server <- function(input, output, session) {
       output[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]])]] <- renderUI({
         distribution = paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
         selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
-        uiOutput(paste0(distribution, "Parameters"))
       })
     }),
     priority = 100
@@ -344,7 +345,7 @@ server <- function(input, output, session) {
         numericInputs = lapply(seq_len(nNumericInputs), function(i) {
           numericInput(
             inputId = paste0(distribution, input[[distribution]], distributions[[input[[distribution]]]][[i]]),
-            label = paste0(distributions[[input[[distribution]]]][[i]]),
+            label = paste0(names(distributions[[input[[distribution]]]])),
             value = distributions[[input[[distribution]]]][[i]][[3]],
             max = distributions[[input[[distribution]]]][[i]][[2]],
             min = distributions[[input[[distribution]]]][[i]][[1]]
