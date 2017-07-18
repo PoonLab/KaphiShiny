@@ -100,7 +100,10 @@ ui <- fluidPage(
           uiOutput(outputId = "priorsDistributionsPlots")
         ), 
         # Tab for feedback/diagnosis
-        tabPanel(title = "Feedback/Diagnosis"),
+        tabPanel(
+          title = "Feedback/Diagnosis",
+          verbatimTextOutput("console")
+        ),
         # Tab for simulation results
         tabPanel(title = "Simulation Results")
       )
@@ -161,7 +164,7 @@ server <- function(input, output, session) {
   observeEvent(
     input$configFile,
     {
-      # Load configuration file
+      # Loading configuration file
       configFile <- input$configFile
       config <- load.config(configFile$datapath)
       config <- set.model(config, input$specificModel)
@@ -190,25 +193,33 @@ server <- function(input, output, session) {
   )
   
   uniqueTraceFileName <- Sys.time()
+  trace <- reactiveValues()
   # Running Kaphi
   observeEvent(
     input$runKaphi,
     {
-      # Load configuration file
+      # Loading configuration file
       configFile <- input$configFile
       config <- load.config(configFile$datapath)
       config <- set.model(config, input$specificModel)
-      # Load tree input
+      # Loading tree input
       if (is.null(newickInput$data)) return()
       obs.tree <- newickInput$data
       obs.tree <- parse.input.tree(obs.tree, config)
-      # Initialize workspace
+      # Initializing workspace
       ws <- init.workspace(obs.tree, config)
-      # Run ABC-SMC
-      res <- run.smc(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel)
+      # Running ABC-SMC and outputing the console output to the user
+      output$console <- renderPrint({
+        logText()
+        return(print(trace[["log"]]))
+      })
+      logText <- reactive({
+        trace[["log"]] <- capture.output(res <- run.smc(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel))
+      })
     }
   )
   
+  # Deleting user trace files after the user ends their session
   session$onSessionEnded(function() {
     if (file.exists(sprintf("tmp/%s.tsv", uniqueTraceFileName))) {
       file.remove(sprintf("tmp/%s.tsv", uniqueTraceFileName))
