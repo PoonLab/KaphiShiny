@@ -189,6 +189,7 @@ server <- function(input, output, session) {
     }
   )
   
+  uniqueTraceFileName <- Sys.time()
   # Running Kaphi
   observeEvent(
     input$runKaphi,
@@ -204,9 +205,16 @@ server <- function(input, output, session) {
       # Initialize workspace
       ws <- init.workspace(obs.tree, config)
       # Run ABC-SMC
-      res <- run.smc(ws, trace.file = "tmp/output.tsv", model=input$specificModel)
+      res <- run.smc(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel)
     }
   )
+  
+  session$onSessionEnded(function() {
+    if (file.exists(sprintf("tmp/%s.tsv", uniqueTraceFileName))) {
+      file.remove(sprintf("tmp/%s.tsv", uniqueTraceFileName))
+    }
+  })
+  
 }
 
 shinyApp(ui = ui, server = server)
