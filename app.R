@@ -60,7 +60,7 @@ ui <- fluidPage(
         downloadButton(outputId = "downloadDefaultConfigurationFile", label = "Download Default Configuration File"),
         fileInput(inputId = "configFile", label = "Upload Configuration File")
       ),
-      # Row For Running Simulation
+      # Row for running simulation
       fluidRow(
         h3(strong(em("Run Kaphi"))),
         actionButton(inputId = "runKaphi", label = "Run Kaphi")
@@ -99,13 +99,13 @@ ui <- fluidPage(
           title = "Priors Distributions",
           uiOutput(outputId = "priorsDistributionsPlots")
         ), 
-        # Tab for feedback/diagnosis
+        # Tab for feedback, diagnosis, and results 
         tabPanel(
-          title = "Feedback/Diagnosis",
-          verbatimTextOutput("console")
-        ),
-        # Tab for simulation results
-        tabPanel(title = "Simulation Results")
+          title = "SMC-ABC Run",
+          verbatimTextOutput("consoleHeading"),
+          verbatimTextOutput("console"),
+          uiOutput("downloadTraceFileButton")
+        )
       )
     )
     
@@ -216,6 +216,21 @@ server <- function(input, output, session) {
       logText <- reactive({
         trace[["log"]] <- capture.output(res <- run.smc(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel))
       })
+      output$consoleHeading <- renderText("Trace of SMC-ABC Run:")
+      # Rendering download button to download trace file
+      output$downloadTraceFileButton <- renderUI({
+        downloadButton(outputId = "downloadTraceFile", label = "Download Trace File")
+      })
+    }
+  )
+  
+  # Downloading the generated trace file
+  output$downloadTraceFile <- downloadHandler(
+    filename = function() {
+      sprintf("%s.tsv", uniqueTraceFileName)
+    },
+    content = function(file) {
+      file.copy(sprintf("tmp/%s.tsv", uniqueTraceFileName), file)
     }
   )
   
