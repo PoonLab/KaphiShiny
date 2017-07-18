@@ -59,6 +59,11 @@ ui <- fluidPage(
         h3(strong(em("SMC Configuration Download and Upload"))),
         downloadButton(outputId = "downloadDefaultConfigurationFile", label = "Download Default Configuration File"),
         fileInput(inputId = "configFile", label = "Upload Configuration File")
+      ),
+      # Row For Running Simulation
+      fluidRow(
+        h3(strong(em("Run Kaphi"))),
+        actionButton(inputId = "runKaphi", label = "Run Kaphi")
       )
     ),
     
@@ -181,6 +186,17 @@ server <- function(input, output, session) {
           )
         })
       )
+    }
+  )
+  
+  # Running Kaphi
+  observeEvent(
+    input$runKaphi,
+    {
+      # Load configuration file
+      configFile <- input$configFile
+      config <- load.config(configFile$datapath)
+      config <- set.model(config, input$specificModel)
       # Load tree input
       if (is.null(newickInput$data)) return()
       obs.tree <- newickInput$data
@@ -191,7 +207,6 @@ server <- function(input, output, session) {
       res <- run.smc(ws, trace.file = "tmp/output.tsv", model=input$specificModel)
     }
   )
-  
 }
 
 shinyApp(ui = ui, server = server)
