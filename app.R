@@ -170,6 +170,9 @@ server <- function(input, output, session) {
       config <- set.model(config, input$specificModel)
       # Plotting prior distributions (heavily inspired by plot.smc.config)
       y <- rbind(sapply(1:1000, function(x) sample.priors(config)))
+      if (nrow(y) == 1){
+        rownames(y)[1] <- names(config$priors)
+      }
       h <- apply(y, 1, density) 
       output$priorsDistributionsPlots <- renderUI({
         nTabs = length(names(config$priors))
