@@ -188,11 +188,13 @@ ui <- fluidPage(
             title = "Proposals",
             uiOutput("proposalsTabs")
           )
-        )
+        ),
+        actionButton(inputId = "initializePriors&Proposals", label = "Initialize Priors & Proposals")
       ),
       # Row for running simulation
       fluidRow(
-        h3(strong(em("Running Simulation")))
+        h3(strong(em("Run Kaphi"))),
+        actionButton(inputId = "runKaphi", label = "Run Kaphi")
       )
     ),
     
@@ -224,11 +226,17 @@ ui <- fluidPage(
           uiOutput("treeVisualization")
         ), 
         # Tab for prior distributions
-        tabPanel(title = "Prior Distributions"), 
-        # Tab for feedback/diagnosis
-        tabPanel(title = "Feedback/Diagnosis"),
-        # Tab for simulation results
-        tabPanel(title = "Simulation Results")
+        tabPanel(
+          title = "Priors Distributions",
+          uiOutput(outputId = "priorsDistributionsPlots")
+        ),
+        # Tab for feedback, diagnosis, and results 
+        tabPanel(
+          title = "SMC-ABC Run",
+          verbatimTextOutput("consoleHeading"),
+          verbatimTextOutput("console"),
+          uiOutput("downloadTraceFileButton")
+        )
       )
     )
     
@@ -345,7 +353,7 @@ server <- function(input, output, session) {
         numericInputs = lapply(seq_len(nNumericInputs), function(i) {
           numericInput(
             inputId = paste0(distribution, input[[distribution]], distributions[[input[[distribution]]]][[i]]),
-            label = paste0(names(distributions[[input[[distribution]]]])),
+            label = paste0(names(distributions[[input[[distribution]]]])[[i]]),
             value = distributions[[input[[distribution]]]][[i]][[3]],
             max = distributions[[input[[distribution]]]][[i]][[2]],
             min = distributions[[input[[distribution]]]][[i]][[1]]
@@ -361,22 +369,47 @@ server <- function(input, output, session) {
   output$proposalsTabs <- renderUI({
     nTabs = length(parameters[[input$specificModel]])
     tabs = lapply(seq_len(nTabs), function(i) {
+      distribution = paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
       tabPanel(
         paste0(parameters[[input$specificModel]][[i]]),
-        uiOutput(paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]]))
+        uiOutput(paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]])),
+        uiOutput(paste0(distribution, "Parameters"))
       )
     })
     do.call(tabsetPanel, tabs)
   })
   
-  # Creating inputs for each specific proposal
+  # Creating a distribution  drop down menu input for each specific proposal
   observe(
     lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
-      output[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]])]] <- renderUI({ 
+      output[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]])]] <- renderUI({
         distribution = paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
         selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
       })
-    })
+    }),
+    priority = 100
+  )
+  
+  
+  # Creating a series of numeric inputs for each proposal's distribution parameters
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      distribution = paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
+      output[[paste0(distribution, "Parameters")]] <- renderUI({
+        nNumericInputs = length(distributions[[input[[distribution]]]])
+        numericInputs = lapply(seq_len(nNumericInputs), function(i) {
+          numericInput(
+            inputId = paste0(distribution, input[[distribution]], distributions[[input[[distribution]]]][[i]]),
+            label = paste0(names(distributions[[input[[distribution]]]])[[i]]),
+            value = distributions[[input[[distribution]]]][[i]][[3]],
+            max = distributions[[input[[distribution]]]][[i]][[2]],
+            min = distributions[[input[[distribution]]]][[i]][[1]]
+          )
+        })
+        do.call(wellPanel, numericInputs)
+      })
+    }),
+    priority = 99
   )
   
 }
