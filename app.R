@@ -3,80 +3,79 @@ library(Kaphi)
 library(phylocanvas)
 
 distributions <- list(
-  "exp" = list(
-    "rate" = list("Lower" = 0, "Upper" = Inf, "Default" = 1)
+  exp = list(
+    rate = list(Lower = 0, Upper = Inf, Default = 1)
   ),
-  "gamma" = list(
-    "rate" = list("Lower" = 0, "Upper" = Inf, "Default" = 1),
-    "shape" = list("Lower" = 0, "Upper" = Inf, "Default" = 1)
+  gamma = list(
+    rate = list(Lower = 0, Upper = Inf, Default = 1),
+    shape = list(Lower = 0, Upper = Inf, Default = 1)
   ),
-  "lnorm" = list(
-    "mean" = list("Lower" = 0, "Upper" = Inf, "Default" = 1),
-    "sd" = list("Lower" = 0, "Upper" = Inf, "Default" = 1)
+  lnorm = list(
+    mean = list(Lower = 0, Upper = Inf, Default = 1),
+    sd = list(Lower = 0, Upper = Inf, Default = 1)
   ),
-  "norm" = list(
-    "mean" = list("Lower" = 0, "Upper" = Inf, "Default" = 1),
-    "sd" = list("Lower" = 0, "Upper" = Inf, "Default" = 1)
+  norm = list(
+    mean = list(Lower = 0, Upper = Inf, Default = 1),
+    sd = list(Lower = 0, Upper = Inf, Default = 1)
   )
 )
 
 models <- list(
   "Coalescent" = list(
-    "Constant Coalescent"
+    Constant = "const.coalescent"
   ),
   "Compartmental" = list(
-    "SIRD",
-    "SIRND",
-    "SEIR",
-    "SIS"
+    SIRD = "sir.dynamic",
+    SIRND = "sir.nondynamic",
+    SEIR = "seir",
+    SIS = "sis"
   ),
   "Networks" = list(
-    "Coming Soon"
   ),
   "Speciation" = list(
-    "Yule", 
-    "Birth-Death",
-    "BiSSE",
-    "MuSSE",
-    "QuaSSE",
-    "GeoSSE",
-    "BiSS-ness",
-    "ClaSSE"
+    Yule = "yule", 
+    BirthDeath = "bd",
+    BiSSE = "bisse",
+    MuSSE = "musse",
+    QuaSSE = "quasse",
+    GeoSSE = "geosse",
+    BiSSness = "bisseness",
+    ClaSSE  = "classe"
   )
 )
 
 parameters <- list(
-  "Constant Coalescent" = list(
+  const.coalescent = list(
     "Ne.tau"
   ),
-  "SIRD" = list(
+  sir.dynamic = list(
     "beta",
     "gamma",
     "mu"
   ),
-  "SIRND" = list(
+  sir.nondynamic = list(
     "beta",
     "gamma"
   ),
-  "SEIR" = list(
+  seir= list(
     "beta",
     "gamma",
     "mu", 
     "alpha" 
   ),
-  "SIS" = list(
+  sis = list(
     "beta",
     "gamma",
     "mu"
   ),
-  "Yule" = list(
+  yule = list(
     "lambda"
   ), 
-  "Birth-Death" = list(
+  bd = list(
     "lambda",
     "mu" 
   ),
-  "BiSSE" = list(
+  bisse = list(
     "lambda0",
     "lambda1",
     "mu0",
@@ -84,7 +83,7 @@ parameters <- list(
     "q01",
     "q10"
   ),
-  "MuSSE" = list(
+  musse = list(
     "lambda1", 
     "lambda2",
     "lambda3", 
@@ -98,12 +97,12 @@ parameters <- list(
     "q31",
     "q32"
   ),
-  "QuaSSE" = list(
+  quasse = list(
     "lambda",
     "mu",
     "char"
   ),
-  "GeoSSE" = list(
+  geosse = list(
     "sA",
     "sB",
     "sAB",
@@ -112,7 +111,7 @@ parameters <- list(
     "dA",
     "dB"
   ),
-  "BiSS-ness" = list(
+  bisseness = list(
     "lambda0",
     "lambda1",
     "mu0",
@@ -124,7 +123,7 @@ parameters <- list(
     "p1c",
     "p1a" 
   ),
-  "ClaSSE" = list(
+  classe = list(
     "lambda111",
     "lambda112",
     "lambda122",
@@ -151,50 +150,58 @@ ui <- fluidPage(
     sidebarPanel( 
       # Allowing independent scrolling in the sidebar
       id = "sidebarPanel",
-      style = "overflow-y:scroll; max-height:90vh",
-      # Row for newick text/file input 
-      fluidRow(
-        h3(strong(em("Newick Input"))),
-        textInput(inputId = "newickString", label = "Enter a Newick String"), 
-        fileInput(inputId = "newickFile", label = "Choose a Newick File"),
-        actionButton(inputId = "processString", label = "Process String"),
-        actionButton(inputId = "processFile", label = "Process File")
+      style = "background-color: #ffffff; overflow-y:scroll; max-height:90vh",
+      wellPanel(
+        # Row for newick text/file input 
+        fluidRow(
+          h3(strong(em("Newick Input"))),
+          textInput(inputId = "newickString", label = "Enter a Newick String"), 
+          fileInput(inputId = "newickFile", label = "Choose a Newick File"),
+          actionButton(inputId = "processString", label = "Process String"),
+          actionButton(inputId = "processFile", label = "Process File")
+        )
       ),
-      # Row for configuration creation
-      fluidRow(
-        h3(strong(em("SMC Settings Initialization"))),
-        numericInput(inputId = "particleNumber", label = "Number of Particles", value = 1000),
-        numericInput(inputId = "sampleNumber", label = "Number of Samples", value = 5),
-        numericInput(inputId = "ESSTolerance", label = "Effective Sample Size (ESS) Tolerance", value = 1.5),
-        numericInput(inputId = "finalEpsilon", label = "Final Epsilon", value = 0.01),
-        numericInput(inputId = "finalAcceptanceRate", label = "Final Acceptance Rate", value = 0.015),
-        numericInput(inputId = "quality", label = "Quality", value = 0.95),
-        numericInput(inputId = "stepTolerance", label = "Step Tolerance", value = 1e-5),
-        actionButton(inputId = "initializeSMCSettings", label = "Initialize SMC Settings")
+      wellPanel(
+        # Row for configuration creation
+        fluidRow(
+          h3(strong(em("SMC Settings Initialization"))),
+          numericInput(inputId = "particleNumber", label = "Number of Particles", value = 1000),
+          numericInput(inputId = "sampleNumber", label = "Number of Samples", value = 5),
+          numericInput(inputId = "ESSTolerance", label = "Effective Sample Size (ESS) Tolerance", value = 1.5),
+          numericInput(inputId = "finalEpsilon", label = "Final Epsilon", value = 0.01),
+          numericInput(inputId = "finalAcceptanceRate", label = "Final Acceptance Rate", value = 0.015),
+          numericInput(inputId = "quality", label = "Quality", value = 0.95),
+          numericInput(inputId = "stepTolerance", label = "Step Tolerance", value = 1e-5),
+          actionButton(inputId = "initializeSMCSettings", label = "Initialize SMC Settings")
+        )
       ),
-      # Row for model selection and initialization
-      fluidRow(
-        h3(strong(em("Model Selection and Initialization"))),
-        selectInput("generalModel", "General Model", names(models)),
-        selectInput("specificModel", "Specific Model", models[[1]]),
-        tabsetPanel(
-          # Tab for priors
-          tabPanel(
-            title = "Priors",
-            uiOutput("priorsTabs")
+      wellPanel(
+        # Row for model selection and initialization
+        fluidRow(
+          h3(strong(em("Model Selection and Initialization"))),
+          selectInput("generalModel", "General Model", names(models)),
+          selectInput("specificModel", "Specific Model", models[[1]]),
+          tabsetPanel(
+            # Tab for priors
+            tabPanel(
+              title = "Priors",
+              uiOutput("priorsTabs")
+            ),
+            # Tab for proposals
+            tabPanel(
+              title = "Proposals",
+              uiOutput("proposalsTabs")
+            )
           ),
-          # Tab for proposals
-          tabPanel(
-            title = "Proposals",
-            uiOutput("proposalsTabs")
-          )
-        ),
-        actionButton(inputId = "initializePriors&Proposals", label = "Initialize Priors & Proposals")
+          actionButton(inputId = "initializePriors&Proposals", label = "Initialize Priors & Proposals")
+        )
       ),
-      # Row for running simulation
-      fluidRow(
-        h3(strong(em("Run Kaphi"))),
-        actionButton(inputId = "runKaphi", label = "Run Kaphi")
+      wellPanel(
+        # Row for running simulation
+        fluidRow(
+          h3(strong(em("Run Kaphi"))),
+          actionButton(inputId = "runKaphi", label = "Run Kaphi")
+        )
       )
     ),
     
