@@ -419,6 +419,14 @@ server <- function(input, output, session) {
     priority = 99
   )
   
+  # Initializing Priors & Proposals
+  # observeEvent(
+  #   input$initializePriors&Proposals,
+  #   {
+  #     
+  #   }
+  # )
+  
 }
 
 shinyApp(ui = ui, server = server)
