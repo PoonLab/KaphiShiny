@@ -27,4 +27,5 @@ distances:
     weight: 1.0
     decay.factor: 0.2
     rbf.variance: 100.0
-    sst.control: 1.0
+    sst.control: 1.
+    norm.mode: 'NONE'

@@ -68,4 +68,5 @@ distances:
     decay.factor: 0.02
     rbf.variance: 100.0
     sst.control: 1.0
+    norm.mode: 'NONE'
 
