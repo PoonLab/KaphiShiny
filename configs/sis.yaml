@@ -26,6 +26,8 @@ priors:
     hyperparameters:
     - shape: 50
     - rate: 1
+constraints:
+  - ''
 proposals:
   't.end':
     dist: 'norm'
@@ -53,15 +55,16 @@ proposals:
     - shape: 20
     - rate: 1
 smc:
-  nparticle: 100
-  nsample: 5
+  nparticle: 500
+  nsample: 3
   ess.tolerance: 50.0
   final.accept.rate: 0.1
   final.epsilon: 0.1
   quality: 0.95
   step.tolerance: 1.e-5
-kernel:
-  decay.factor: 0.2
-  rbf.variance: 100.0
-  sst.control: 1.0
-  norm.mode: 'NONE'
+distances:
+  'kernel.dist':
+    weight: 1.0
+    decay.factor: 0.02
+    rbf.variance: 100.0
+    sst.control: 1.0
