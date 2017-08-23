@@ -259,6 +259,7 @@ server <- function(input, output, session) {
     params=NA,
     priors=list(),
     prior.densities=list(),
+    constraints=NULL,
     proposals=list(),
     proposal.densities=list(),
     model=NA,
@@ -272,11 +273,14 @@ server <- function(input, output, session) {
     quality=0.95,
     step.tolerance=1e-5,
     
-    # Kernel settings
+    # Distance settings: kernel, sackin, tree.width, etc
+    dist=NULL,
+    
+    # Cached kernel settings, left alone if not specified in user-provided yaml/distance string
     decay.factor=0.2,
-    rbf.variance=2.0,
+    rbf.variance=100.0,
     sst.control=1.0,
-    norm.mode='MEAN'
+    norm.mode='NONE'
   )
   
   # Reading tree from newick string
