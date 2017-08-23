@@ -274,7 +274,7 @@ server <- function(input, output, session) {
     step.tolerance=1e-5,
     
     # Distance settings: kernel, sackin, tree.width, etc
-    dist=NULL,
+    dist='kernel.dist(x,y,decay.factor=0.2,rbf.variance=100.0,sst.control=1.0)',
     
     # Cached kernel settings, left alone if not specified in user-provided yaml/distance string
     decay.factor=0.2,
