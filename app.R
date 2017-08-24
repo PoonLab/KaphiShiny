@@ -424,12 +424,18 @@ server <- function(input, output, session) {
   )
   
   # Initializing Priors & Proposals
-  # observeEvent(
-  #   input$initializePriors&Proposals,
-  #   {
-  #     
-  #   }
-  # )
+  observeEvent(
+    input$initializePriors&Proposals,
+    {
+      lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+        config$params[[i]] <- parameters[[input$specificModel]][[i]] 
+        config$priors$parameters[[input$specificModel]][[i]] = paste0()
+        config$prior.densities$parameters[[input$specificModel]][[i]] = paste0()
+        config$proposals$parameters[[input$specificModel]][[i]] = paste0()
+        config$proposal.densities$parameters[[input$specificModel]][[i]] = paste0()
+      })
+    }
+  )
   
 }
 
