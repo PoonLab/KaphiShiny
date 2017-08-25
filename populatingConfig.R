@@ -164,10 +164,13 @@ configTest <- list(
 
 specificModel = "yule"
 
-for(i in seq_len(length(parameters[[specificModel]]))) {
-  configTest$params[[i]] <- parameters[[specificModel]][[i]]
-  configTest$priors$parameters[[specificModel]][[i]] = paste0('r', "(n=1,", ")")
-  configTest$prior.densities$parameters[[specificModel]][[i]] = paste0('d', "(arg.prior,", ")")
-  configTest$proposals$parameters[[specificModel]][[i]] = paste0('r', "Distribution", "(n=1,", ")")
-  configTest$proposal.densities$parameters[[specificModel]][[i]] = paste0('d', "Distribution", "(arg.delta,", ")")
+for(i in 1:length(parameters[[specificModel]])) {
+  parameter <- toString(parameters[[specificModel]][[i]])
+  configTest$params[[i]] <- parameter
+  configTest$priors[[parameter]] <- paste0('r', "(n=1,", ")")
+  configTest$prior.densities[[parameter]] <- paste0('d', "(arg.prior,", ")")
+  configTest$proposals[[parameter]] <- paste0('r', "Distribution", "(n=1,", ")")
+  configTest$proposal.densities[[parameter]] <- paste0('d', "Distribution", "(arg.delta,", ")")
 }
+
+

@@ -424,34 +424,35 @@ server <- function(input, output, session) {
   )
   
   # Initializing Priors & Proposals
-  # observeEvent(
-  #   input$initializePriors&Proposals,
-  #   {
-  #     for(i in seq_len(length(parameters[[specificModel]]))) {
-  #       config$params[[i]] <- parameters[[input$specificModel]][[i]]
-  #       config$priors$parameters[[input$specificModel]][[i]] = paste0('r', 
-  #                                                                     input[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")]], 
-  #                                                                     "(n=1,",
-  #                                                                     , 
-  #                                                                     ")")
-  #       config$prior.densities$parameters[[input$specificModel]][[i]] = paste0('d', 
-  #                                                                              input[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")]], 
-  #                                                                              "(arg.prior,", 
-  #                                                                              , 
-  #                                                                              ")")
-  #       config$proposals$parameters[[input$specificModel]][[i]] = paste0('r', 
-  #                                                                        input[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")]], 
-  #                                                                        "(n=1,", 
-  #                                                                        , 
-  #                                                                        ")")
-  #       config$proposal.densities$parameters[[input$specificModel]][[i]] = paste0('d', 
-  #                                                                                 input[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")]], 
-  #                                                                                 "(arg.delta,", 
-  #                                                                                 , 
-  #                                                                                 ")")
-  #     }
-  #   }
-  # )
+  observeEvent(
+    input$initializePriors&Proposals,
+    {
+      for(i in 1:length(parameters[[input$specificModel]])) {
+        parameter <- toString(parameters[[input$specificModel]][[i]])
+        configTest$params[[i]] <- parameter
+        configTest$priors[[parameter]] = paste0('r',
+                                                input[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")]],
+                                                "(n=1,",
+                                                ,
+                                                ")")
+        configTest$prior.densities[[parameter]] = paste0('d',
+                                                         input[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")]],
+                                                         "(arg.prior,",
+                                                         ,
+                                                         ")")
+        configTest$proposals[[parameter]] = paste0('r',
+                                                   input[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")]],
+                                                   "(n=1,",
+                                                   ,
+                                                   ")")
+        configTest$proposal.densities[[parameter]] = paste0('d',
+                                                            input[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")]],
+                                                            "(arg.delta,",
+                                                            ,
+                                                            ")")
+      }
+    }
+  )
   
 }
 
