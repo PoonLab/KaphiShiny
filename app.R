@@ -424,18 +424,34 @@ server <- function(input, output, session) {
   )
   
   # Initializing Priors & Proposals
-  observeEvent(
-    input$initializePriors&Proposals,
-    {
-      lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
-        config$params[[i]] <- parameters[[input$specificModel]][[i]] 
-        config$priors$parameters[[input$specificModel]][[i]] = paste0()
-        config$prior.densities$parameters[[input$specificModel]][[i]] = paste0()
-        config$proposals$parameters[[input$specificModel]][[i]] = paste0()
-        config$proposal.densities$parameters[[input$specificModel]][[i]] = paste0()
-      })
-    }
-  )
+  # observeEvent(
+  #   input$initializePriors&Proposals,
+  #   {
+  #     for(i in seq_len(length(parameters[[specificModel]]))) {
+  #       config$params[[i]] <- parameters[[input$specificModel]][[i]]
+  #       config$priors$parameters[[input$specificModel]][[i]] = paste0('r', 
+  #                                                                     input[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")]], 
+  #                                                                     "(n=1,",
+  #                                                                     , 
+  #                                                                     ")")
+  #       config$prior.densities$parameters[[input$specificModel]][[i]] = paste0('d', 
+  #                                                                              input[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")]], 
+  #                                                                              "(arg.prior,", 
+  #                                                                              , 
+  #                                                                              ")")
+  #       config$proposals$parameters[[input$specificModel]][[i]] = paste0('r', 
+  #                                                                        input[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")]], 
+  #                                                                        "(n=1,", 
+  #                                                                        , 
+  #                                                                        ")")
+  #       config$proposal.densities$parameters[[input$specificModel]][[i]] = paste0('d', 
+  #                                                                                 input[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")]], 
+  #                                                                                 "(arg.delta,", 
+  #                                                                                 , 
+  #                                                                                 ")")
+  #     }
+  #   }
+  # )
   
 }
 
