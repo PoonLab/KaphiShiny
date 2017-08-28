@@ -173,4 +173,10 @@ for(i in 1:length(parameters[[specificModel]])) {
   configTest$proposal.densities[[parameter]] <- paste0('d', "Distribution", "(arg.delta,", ")")
 }
 
-
+distribution.parameters <- function(i, distribution, distributionInputID) {
+  distributionParameters <- list()
+  for(i in 1:length(distributions[[distribution]])) {
+    distributionParameters[[i]] <- paste0(names(distributions[[distribution]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], distributions[[input[[distributionInputID]]]][[i]])]])
+  }
+  return(paste0(distributionParameters, collapse = ","))
+}

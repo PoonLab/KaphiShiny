@@ -429,27 +429,13 @@ server <- function(input, output, session) {
     {
       for(i in 1:length(parameters[[input$specificModel]])) {
         parameter <- toString(parameters[[input$specificModel]][[i]])
+        priorDistribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+        proposalDistribution <- paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
         configTest$params[[i]] <- parameter
-        configTest$priors[[parameter]] = paste0('r',
-                                                input[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")]],
-                                                "(n=1,",
-                                                ,
-                                                ")")
-        configTest$prior.densities[[parameter]] = paste0('d',
-                                                         input[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")]],
-                                                         "(arg.prior,",
-                                                         ,
-                                                         ")")
-        configTest$proposals[[parameter]] = paste0('r',
-                                                   input[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")]],
-                                                   "(n=1,",
-                                                   ,
-                                                   ")")
-        configTest$proposal.densities[[parameter]] = paste0('d',
-                                                            input[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")]],
-                                                            "(arg.delta,",
-                                                            ,
-                                                            ")")
+        configTest$priors[[parameter]] = paste0("r", input[[priorDistribution]], "(n=1,", , ")")
+        configTest$prior.densities[[parameter]] = paste0("d", input[[priorDistribution]], "(arg.prior,", , ")")
+        configTest$proposals[[parameter]] = paste0("r", input[[proposalDistribution]], "(n=1,", , ")")
+        configTest$proposal.densities[[parameter]] = paste0("d", input[[proposalDistribution]], "(arg.delta,", , ")")
       }
     }
   )
