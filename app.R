@@ -439,12 +439,37 @@ server <- function(input, output, session) {
         parameter <- toString(parameters[[input$specificModel]][[i]])
         priorDistribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
         proposalDistribution <- paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
-        configTest$params[[i]] <- parameter
-        configTest$priors[[parameter]] = paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
-        configTest$prior.densities[[parameter]] = paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
-        configTest$proposals[[parameter]] = paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
-        configTest$proposal.densities[[parameter]] = paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
+        config$params[[i]] <- parameter
+        config$priors[[parameter]] = paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
+        config$prior.densities[[parameter]] = paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
+        config$proposals[[parameter]] = paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
+        config$proposal.densities[[parameter]] = paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
       }
+      config <- set.model(config, input$specificModel)
+      # Plotting prior distributions (heavily inspired by plot.smc.config)
+      y <- rbind(sapply(1:1000, function(x) sample.priors(config)))
+      if (nrow(y) == 1){
+        rownames(y)[1] <- names(config$priors)
+      }
+      h <- apply(y, 1, density)
+      output$priorsDistributionsPlots <- renderUI({
+        nTabs = length(names(config$priors))
+        tabs = lapply(seq_len(nTabs), function(i) {
+          tabPanel(
+            paste0(names(config$priors)[[i]]),
+            plotOutput(outputId = paste0(names(config$priors)[[i]], "Plot"))
+          )
+        })
+        do.call(tabsetPanel, tabs)
+      })
+      observe(
+        lapply(seq_len(length(names(config$priors))), function(i) {
+          q <- quantile(y[i,], c(0.05, 0.95))
+          output[[paste0(names(config$priors)[[i]], "Plot")]] <- renderPlot(
+            plot(h[[i]], xlab=names(h)[i], main=paste0("Sample prior distribution of ", names(config$priors)[[i]]), xlim=q)
+          )
+        })
+      )
     }
   )
   
