@@ -137,14 +137,6 @@ parameters <- list(
   )
 )
 
-distribution.parameters <- function(distributionString, distributionInputID) {
-  distributionParameters <- list()
-  for(i in 1:length(distributions[[distributionString]])) {
-    distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], distributions[[input[[distributionInputID]]]][[i]])]])
-  }
-  return(paste0(distributionParameters, collapse = ","))
-}
-
 ui <- fluidPage(
   
   # Page title
@@ -175,11 +167,11 @@ ui <- fluidPage(
           h3(strong(em("SMC Settings Initialization"))),
           numericInput(inputId = "particleNumber", label = "Number of Particles", value = 1000),
           numericInput(inputId = "sampleNumber", label = "Number of Samples", value = 5),
-          numericInput(inputId = "ESSTolerance", label = "Effective Sample Size (ESS) Tolerance", value = 1.5),
-          numericInput(inputId = "finalEpsilon", label = "Final Epsilon", value = 0.01),
-          numericInput(inputId = "finalAcceptanceRate", label = "Final Acceptance Rate", value = 0.015),
+          numericInput(inputId = "ESSTolerance", label = "Effective Sample Size (ESS) Tolerance", value = 50.0),
+          numericInput(inputId = "finalEpsilon", label = "Final Epsilon", value = 0.05),
+          numericInput(inputId = "finalAcceptanceRate", label = "Final Acceptance Rate", value = 0.05),
           numericInput(inputId = "quality", label = "Quality", value = 0.95),
-          numericInput(inputId = "stepTolerance", label = "Step Tolerance", value = 1e-5),
+          numericInput(inputId = "stepTolerance", label = "Step Tolerance", value = 1e-4),
           actionButton(inputId = "initializeSMCSettings", label = "Initialize SMC Settings")
         )
       ),
@@ -430,6 +422,14 @@ server <- function(input, output, session) {
     }),
     priority = 99
   )
+  
+  distribution.parameters <- function(distributionString, distributionInputID) {
+    distributionParameters <- list()
+    for(i in 1:length(distributions[[distributionString]])) {
+      distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], distributions[[input[[distributionInputID]]]][[i]])]])
+    }
+    return(paste0(distributionParameters, collapse = ","))
+  }
   
   # Initializing Priors & Proposals
   observeEvent(
