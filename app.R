@@ -201,7 +201,7 @@ ui <- fluidPage(
               uiOutput("proposalsTabs")
             )
           ),
-          actionButton(inputId = "initializePriors&Proposals", label = "Initialize Priors & Proposals")
+          actionButton(inputId = "initializePriorsAndProposals", label = "Initialize Priors & Proposals")
         )
       ),
       wellPanel(
@@ -433,7 +433,7 @@ server <- function(input, output, session) {
   
   # Initializing Priors & Proposals
   observeEvent(
-    input$initializePriors&Proposals,
+    input$initializePriorsAndProposals,
     {
       for(i in 1:length(parameters[[input$specificModel]])) {
         parameter <- toString(parameters[[input$specificModel]][[i]])
