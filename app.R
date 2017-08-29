@@ -137,6 +137,14 @@ parameters <- list(
   )
 )
 
+distribution.parameters <- function(distributionString, distributionInputID) {
+  distributionParameters <- list()
+  for(i in 1:length(distributions[[distributionString]])) {
+    distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], distributions[[input[[distributionInputID]]]][[i]])]])
+  }
+  return(paste0(distributionParameters, collapse = ","))
+}
+
 ui <- fluidPage(
   
   # Page title
@@ -432,10 +440,10 @@ server <- function(input, output, session) {
         priorDistribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
         proposalDistribution <- paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
         configTest$params[[i]] <- parameter
-        configTest$priors[[parameter]] = paste0("r", input[[priorDistribution]], "(n=1,", , ")")
-        configTest$prior.densities[[parameter]] = paste0("d", input[[priorDistribution]], "(arg.prior,", , ")")
-        configTest$proposals[[parameter]] = paste0("r", input[[proposalDistribution]], "(n=1,", , ")")
-        configTest$proposal.densities[[parameter]] = paste0("d", input[[proposalDistribution]], "(arg.delta,", , ")")
+        configTest$priors[[parameter]] = paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
+        configTest$prior.densities[[parameter]] = paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
+        configTest$proposals[[parameter]] = paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
+        configTest$proposal.densities[[parameter]] = paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
       }
     }
   )
