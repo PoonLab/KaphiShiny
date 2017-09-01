@@ -1,3 +1,5 @@
+## TODO: assign a smaller variable dist <- [[input[[distribution]]]] to clean up code
+
 library(shiny)
 library(Kaphi)
 library(phylocanvas)
@@ -423,10 +425,12 @@ server <- function(input, output, session) {
     priority = 99
   )
   
-  distribution.parameters <- function(distributionString, distributionInputID) {
+  distribution.parameters <- function(distributionString, distributionInputID, nNumericInputs) {
     distributionParameters <- list()
     for(i in 1:length(distributions[[distributionString]])) {
-      distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], distributions[[input[[distributionInputID]]]][[i]])]])
+      for (j in 1:nNumericInputs) {
+       distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], distributions[[input[[distributionInputID]]]][[j]])]])
+      }
     }
     return(paste0(distributionParameters, collapse = ","))
   }
@@ -439,11 +443,13 @@ server <- function(input, output, session) {
         parameter <- toString(parameters[[input$specificModel]][[i]])
         priorDistribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
         proposalDistribution <- paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
+        nPriorDistributionNumericInputs <- length(distributions[[input[[priorDistribution]]]])
+        nProposalDistributionNumericInputs <- length(distributions[[input[[proposalDistribution]]]])
         config$params[[i]] <- parameter
-        config$priors[[parameter]] = paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
-        config$prior.densities[[parameter]] = paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
-        config$proposals[[parameter]] = paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
-        config$proposal.densities[[parameter]] = paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
+        config$priors[[parameter]] = paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution, nPriorDistributionNumericInputs), ")")
+        config$prior.densities[[parameter]] = paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution, nPriorDistributionNumericInputs), ")")
+        config$proposals[[parameter]] = paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution, nProposalDistributionNumericInputs), ")")
+        config$proposal.densities[[parameter]] = paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution, nProposalDistributionNumericInputs), ")")
       }
       config <- set.model(config, input$specificModel)
       # Plotting prior distributions (heavily inspired by plot.smc.config)
