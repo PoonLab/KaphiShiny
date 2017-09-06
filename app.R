@@ -164,23 +164,22 @@ ui <- fluidPage(
         )
       ),
       wellPanel(
-        # Row for configuration creation
+        # Row for SMC settings
         fluidRow(
-          h3(strong(em("SMC Settings Initialization"))),
+          h3(strong(em("SMC Settings"))),
           numericInput(inputId = "particleNumber", label = "Number of Particles", value = 1000),
           numericInput(inputId = "sampleNumber", label = "Number of Samples", value = 5),
           numericInput(inputId = "ESSTolerance", label = "Effective Sample Size (ESS) Tolerance", value = 50.0),
           numericInput(inputId = "finalEpsilon", label = "Final Epsilon", value = 0.05),
           numericInput(inputId = "finalAcceptanceRate", label = "Final Acceptance Rate", value = 0.05),
           numericInput(inputId = "quality", label = "Quality", value = 0.95),
-          numericInput(inputId = "stepTolerance", label = "Step Tolerance", value = 1e-4),
-          actionButton(inputId = "initializeSMCSettings", label = "Initialize SMC Settings")
+          numericInput(inputId = "stepTolerance", label = "Step Tolerance", value = 1e-4)
         )
       ),
       wellPanel(
-        # Row for model selection and initialization
+        # Row for model selection and config initialization
         fluidRow(
-          h3(strong(em("Model Selection and Initialization"))),
+          h3(strong(em("Model Selection and Config Initialization"))),
           selectInput("generalModel", "General Model", names(models)),
           selectInput("specificModel", "Specific Model", models[[1]]),
           tabsetPanel(
@@ -195,7 +194,7 @@ ui <- fluidPage(
               uiOutput("proposalsTabs")
             )
           ),
-          actionButton(inputId = "initializePriorsAndProposals", label = "Initialize Priors & Proposals")
+          actionButton(inputId = "initializeConfig", label = "Initialize Config")
         )
       ),
       wellPanel(
@@ -276,7 +275,7 @@ server <- function(input, output, session) {
     step.tolerance=1e-5,
     
     # Distance settings: kernel, sackin, tree.width, etc
-    dist='kernel.dist(x,y,decay.factor=0.2,rbf.variance=100.0,sst.control=1.0)',
+    dist="1*Kaphi::kernel.dist(x, y, decay.factor=0.2, rbf.variance=100, sst.control=1, norm.mode=NONE)",
     
     # Cached kernel settings, left alone if not specified in user-provided yaml/distance string
     decay.factor=0.2,
@@ -312,20 +311,6 @@ server <- function(input, output, session) {
   output$treeVisualization <- renderUI({
     phylocanvasOutput("tree", width = input$width, height = input$height)
   })
-  
-  # Initializing SMC settings
-  observeEvent(
-    input$initializeSMCSettings,
-    {
-      config$nparticle <- input$particleNumber
-      config$nsample <- input$sampleNumber
-      config$ess.tolerance <- input$ESSTolerance
-      config$final.epsilon <- input$finalEpsilon
-      config$final.accept.rate <- input$finalAcceptanceRate
-      config$quality <- input$quality
-      config$step.tolerance <- input$stepTolerance
-    }
-  )
   
   # Handling general and specific model selection
   observe({
@@ -365,7 +350,7 @@ server <- function(input, output, session) {
         nNumericInputs = length(distributions[[input[[distribution]]]])
         numericInputs = lapply(seq_len(nNumericInputs), function(i) {
           numericInput(
-            inputId = paste0(distribution, input[[distribution]], distributions[[input[[distribution]]]][[i]]),
+            inputId = paste0(distribution, input[[distribution]], i),
             label = paste0(names(distributions[[input[[distribution]]]])[[i]]),
             value = distributions[[input[[distribution]]]][[i]][[3]],
             max = distributions[[input[[distribution]]]][[i]][[2]],
@@ -412,7 +397,7 @@ server <- function(input, output, session) {
         nNumericInputs = length(distributions[[input[[distribution]]]])
         numericInputs = lapply(seq_len(nNumericInputs), function(i) {
           numericInput(
-            inputId = paste0(distribution, input[[distribution]], distributions[[input[[distribution]]]][[i]]),
+            inputId = paste0(distribution, input[[distribution]], i),
             label = paste0(names(distributions[[input[[distribution]]]])[[i]]),
             value = distributions[[input[[distribution]]]][[i]][[3]],
             max = distributions[[input[[distribution]]]][[i]][[2]],
@@ -426,33 +411,37 @@ server <- function(input, output, session) {
   )
   
   # Function for creating string expressions of distribution parameters that correspond to config formatting
-  distribution.parameters <- function(distributionString, distributionInputID, nNumericInputs) {
+  distribution.parameters <- function(distributionString, distributionInputID) {
     distributionParameters <- list()
     for(i in seq_len(length(distributions[[distributionString]]))) {
-      for (j in seq_len(nNumericInputs)) {
-        distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], toString(j-1))]])
-      }
+      distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], i)]])
     }
     return(paste0(distributionParameters, collapse = ","))
   }
   
   # Initializing Priors & Proposals
   observeEvent(
-    input$initializePriorsAndProposals,
+    input$initializeConfig,
     {
+      config$nparticle <- input$particleNumber
+      config$nsample <- input$sampleNumber
+      config$ess.tolerance <- input$ESSTolerance
+      config$final.epsilon <- input$finalEpsilon
+      config$final.accept.rate <- input$finalAcceptanceRate
+      config$quality <- input$quality
+      config$step.tolerance <- input$stepTolerance
       for(i in seq_len(length(parameters[[input$specificModel]]))) {
         parameter <- toString(parameters[[input$specificModel]][[i]])
         priorDistribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
         proposalDistribution <- paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
-        nPriorDistributionNumericInputs <- length(distributions[[input[[priorDistribution]]]])
-        nProposalDistributionNumericInputs <- length(distributions[[input[[proposalDistribution]]]])
         config$params[[i]] <- parameter
-        config$priors[[parameter]] = paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution, nPriorDistributionNumericInputs), ")")
-        config$prior.densities[[parameter]] = paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution, nPriorDistributionNumericInputs), ")")
-        config$proposals[[parameter]] = paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution, nProposalDistributionNumericInputs), ")")
-        config$proposal.densities[[parameter]] = paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution, nProposalDistributionNumericInputs), ")")
+        config$priors[[parameter]] <- paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
+        config$prior.densities[[parameter]] <- paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
+        config$proposals[[parameter]] <- paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
+        config$proposal.densities[[parameter]] <- paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
       }
       config <- set.model(config, input$specificModel)
+      print.smc.config(config)
       # Plotting prior distributions (heavily inspired by plot.smc.config)
       y <- rbind(sapply(1:1000, function(x) sample.priors(config)))
       if (nrow(y) == 1){
