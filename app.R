@@ -425,11 +425,12 @@ server <- function(input, output, session) {
     priority = 99
   )
   
+  # Function for creating string expressions of distribution parameters that correspond to config formatting
   distribution.parameters <- function(distributionString, distributionInputID, nNumericInputs) {
     distributionParameters <- list()
-    for(i in 1:length(distributions[[distributionString]])) {
-      for (j in 1:nNumericInputs) {
-       distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], distributions[[input[[distributionInputID]]]][[j]])]])
+    for(i in seq_len(length(distributions[[distributionString]]))) {
+      for (j in seq_len(nNumericInputs)) {
+        distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], toString(j-1))]])
       }
     }
     return(paste0(distributionParameters, collapse = ","))
@@ -439,7 +440,7 @@ server <- function(input, output, session) {
   observeEvent(
     input$initializePriorsAndProposals,
     {
-      for(i in 1:length(parameters[[input$specificModel]])) {
+      for(i in seq_len(length(parameters[[input$specificModel]]))) {
         parameter <- toString(parameters[[input$specificModel]][[i]])
         priorDistribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
         proposalDistribution <- paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
