@@ -167,7 +167,7 @@ ui <- fluidPage(
         # Row for SMC settings
         fluidRow(
           h3(strong(em("SMC Settings"))),
-          numericInput(inputId = "particleNumber", label = "Number of Particles", value = 1000),
+          numericInput(inputId = "particleNumber", label = "Number of Particles", value = 100),
           numericInput(inputId = "sampleNumber", label = "Number of Samples", value = 5),
           numericInput(inputId = "ESSTolerance", label = "Effective Sample Size (ESS) Tolerance", value = 50.0),
           numericInput(inputId = "finalEpsilon", label = "Final Epsilon", value = 0.05),
@@ -177,9 +177,9 @@ ui <- fluidPage(
         )
       ),
       wellPanel(
-        # Row for model selection and config initialization
+        # Row for model selection and config settings
         fluidRow(
-          h3(strong(em("Model Selection and Config Initialization"))),
+          h3(strong(em("Model Selection and Config Settings"))),
           selectInput("generalModel", "General Model", names(models)),
           selectInput("specificModel", "Specific Model", models[[1]]),
           tabsetPanel(
@@ -193,8 +193,7 @@ ui <- fluidPage(
               title = "Proposals",
               uiOutput("proposalsTabs")
             )
-          ),
-          actionButton(inputId = "initializeConfig", label = "Initialize Config")
+          )
         )
       ),
       wellPanel(
@@ -419,11 +418,15 @@ server <- function(input, output, session) {
     return(paste0(distributionParameters, collapse = ","))
   }
   
-  # Initializing Priors & Proposals
+  # Initializing config, plotting priors and proposals, and running Kaphi
+  uniqueTraceFileName <- Sys.time()
+  trace <- reactiveValues()
   observeEvent(
-    input$initializeConfig,
+    input$runKaphi,
     {
+      # Setting config class
       class(config) <- "smc.config"
+      # Populating config with SMC settings
       config$nparticle <- input$particleNumber
       config$nsample <- input$sampleNumber
       config$ess.tolerance <- input$ESSTolerance
@@ -431,6 +434,7 @@ server <- function(input, output, session) {
       config$final.accept.rate <- input$finalAcceptanceRate
       config$quality <- input$quality
       config$step.tolerance <- input$stepTolerance
+      # Populating config with priors and proposals
       for(i in seq_len(length(parameters[[input$specificModel]]))) {
         parameter <- toString(parameters[[input$specificModel]][[i]])
         priorDistribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
@@ -441,6 +445,7 @@ server <- function(input, output, session) {
         config$proposals[[parameter]] <- paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
         config$proposal.densities[[parameter]] <- paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
       }
+      # Setting config model
       config <- set.model(config, input$specificModel)
       # Plotting prior distributions (heavily inspired by plot.smc.config)
       y <- rbind(sapply(1:1000, function(x) sample.priors(config)))
@@ -466,8 +471,44 @@ server <- function(input, output, session) {
           )
         })
       )
+      # Loading tree input
+      if (is.null(newickInput$data)) return()
+      obs.tree <- newickInput$data
+      obs.tree <- parse.input.tree(obs.tree, config)
+      # Initializing workspace
+      ws <- init.workspace(obs.tree, config)
+      # Running ABC-SMC and outputing the console output to the user
+      output$console <- renderPrint({
+        logText()
+        return(print(trace[["log"]]))
+      })
+      logText <- reactive({
+        trace[["log"]] <- capture.output(res <- run.smc(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel))
+      })
+      output$consoleHeading <- renderText("Trace of SMC-ABC Run:")
+      # Rendering download button to download trace file
+      output$downloadTraceFileButton <- renderUI({
+        downloadButton(outputId = "downloadTraceFile", label = "Download Trace File")
+      })
     }
   )
+  
+  # Downloading the generated trace file
+  output$downloadTraceFile <- downloadHandler(
+    filename = function() {
+      sprintf("%s.tsv", uniqueTraceFileName)
+    },
+    content = function(file) {
+      file.copy(sprintf("tmp/%s.tsv", uniqueTraceFileName), file)
+    }
+  )
+  
+  # Deleting user trace files after the user ends their session
+  session$onSessionEnded(function() {
+    if (file.exists(sprintf("tmp/%s.tsv", uniqueTraceFileName))) {
+      file.remove(sprintf("tmp/%s.tsv", uniqueTraceFileName))
+    }
+  })
   
 }
 
