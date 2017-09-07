@@ -1,6 +1,26 @@
+## TODO: assign a smaller variable dist <- [[input[[distribution]]]] to clean up code
+
 library(shiny)
 library(Kaphi)
 library(phylocanvas)
+
+distributions <- list(
+  exp = list(
+    rate = list(Lower = 0, Upper = Inf, Default = 1)
+  ),
+  gamma = list(
+    rate = list(Lower = 0, Upper = Inf, Default = 1),
+    shape = list(Lower = 0, Upper = Inf, Default = 1)
+  ),
+  lnorm = list(
+    mean = list(Lower = 0, Upper = Inf, Default = 1),
+    sd = list(Lower = 0, Upper = Inf, Default = 1)
+  ),
+  norm = list(
+    mean = list(Lower = 0, Upper = Inf, Default = 1),
+    sd = list(Lower = 0, Upper = Inf, Default = 1)
+  )
+)
 
 models <- list(
   "Coalescent" = list(
@@ -119,24 +139,6 @@ parameters <- list(
   )
 )
 
-distributions <- list(
-  exp = list(
-    rate = list(Lower = 0, Upper = Inf, Default = 1)
-  ),
-  gamma = list(
-    rate = list(Lower = 0, Upper = Inf, Default = 1),
-    shape = list(Lower = 0, Upper = Inf, Default = 1)
-  ),
-  lnorm = list(
-    mean = list(Lower = 0, Upper = Inf, Default = 1),
-    sd = list(Lower = 0, Upper = Inf, Default = 1)
-  ),
-  norm = list(
-    mean = list(Lower = 0, Upper = Inf, Default = 1),
-    sd = list(Lower = 0, Upper = Inf, Default = 1)
-  )
-)
-
 ui <- fluidPage(
   
   # Page title
@@ -150,31 +152,56 @@ ui <- fluidPage(
     sidebarPanel( 
       # Allowing independent scrolling in the sidebar
       id = "sidebarPanel",
-      style = "overflow-y:scroll; max-height:90vh",
-      # Row for newick text/file input 
-      fluidRow(
-        h3(strong(em("Newick Input"))),
-        textInput(inputId = "newickString", label = "Enter a Newick String"), 
-        fileInput(inputId = "newickFile", label = "Choose a Newick File"),
-        actionButton(inputId = "processString", label = "Process String"),
-        actionButton(inputId = "processFile", label = "Process File")
+      style = "background-color: #ffffff; overflow-y:scroll; max-height:90vh",
+      wellPanel(
+        # Row for newick text/file input 
+        fluidRow(
+          h3(strong(em("Newick Input"))),
+          textInput(inputId = "newickString", label = "Enter a Newick String"), 
+          fileInput(inputId = "newickFile", label = "Choose a Newick File"),
+          actionButton(inputId = "processString", label = "Process String"),
+          actionButton(inputId = "processFile", label = "Process File")
+        )
       ),
-      # Row for model selection 
-      fluidRow(
-        h3(strong(em("Model Selection"))),
-        selectInput("generalModel", "General Model", names(models)),
-        selectInput("specificModel", "Specific Model", models[[1]])
+      wellPanel(
+        # Row for SMC settings
+        fluidRow(
+          h3(strong(em("SMC Settings"))),
+          numericInput(inputId = "particleNumber", label = "Number of Particles", value = 100),
+          numericInput(inputId = "sampleNumber", label = "Number of Samples", value = 5),
+          numericInput(inputId = "ESSTolerance", label = "Effective Sample Size (ESS) Tolerance", value = 50.0),
+          numericInput(inputId = "finalEpsilon", label = "Final Epsilon", value = 0.05),
+          numericInput(inputId = "finalAcceptanceRate", label = "Final Acceptance Rate", value = 0.05),
+          numericInput(inputId = "quality", label = "Quality", value = 0.95),
+          numericInput(inputId = "stepTolerance", label = "Step Tolerance", value = 1e-4)
+        )
       ),
-      # Row for configuration download and upload
-      fluidRow(
-        h3(strong(em("SMC Configuration Download and Upload"))),
-        downloadButton(outputId = "downloadDefaultConfigurationFile", label = "Download Default Configuration File"),
-        fileInput(inputId = "configFile", label = "Upload Configuration File")
+      wellPanel(
+        # Row for model selection and config settings
+        fluidRow(
+          h3(strong(em("Model Selection and Config Settings"))),
+          selectInput("generalModel", "General Model", names(models)),
+          selectInput("specificModel", "Specific Model", models[[1]]),
+          tabsetPanel(
+            # Tab for priors
+            tabPanel(
+              title = "Priors",
+              uiOutput("priorsTabs")
+            ),
+            # Tab for proposals
+            tabPanel(
+              title = "Proposals",
+              uiOutput("proposalsTabs")
+            )
+          )
+        )
       ),
-      # Row for running simulation
-      fluidRow(
-        h3(strong(em("Run Kaphi"))),
-        actionButton(inputId = "runKaphi", label = "Run Kaphi")
+      wellPanel(
+        # Row for running simulation
+        fluidRow(
+          h3(strong(em("Run Kaphi"))),
+          actionButton(inputId = "runKaphi", label = "Run Kaphi")
+        )
       )
     ),
     
@@ -209,7 +236,7 @@ ui <- fluidPage(
         tabPanel(
           title = "Priors Distributions",
           uiOutput(outputId = "priorsDistributionsPlots")
-        ), 
+        ),
         # Tab for feedback, diagnosis, and results 
         tabPanel(
           title = "SMC-ABC Run",
@@ -228,6 +255,34 @@ server <- function(input, output, session) {
   
   newickInput <- reactiveValues(data = NULL)
   
+  config <- list(
+    params=NA,
+    priors=list(),
+    prior.densities=list(),
+    constraints=NULL,
+    proposals=list(),
+    proposal.densities=list(),
+    model=NA,
+    
+    # SMC settings
+    nparticle=1000,
+    nsample=5,
+    ess.tolerance=1.5,
+    final.epsilon=0.01,
+    final.accept.rate=0.015,
+    quality=0.95,
+    step.tolerance=1e-5,
+    
+    # Distance settings: kernel, sackin, tree.width, etc
+    dist="1*Kaphi::kernel.dist(x, y, decay.factor=0.2, rbf.variance=100, sst.control=1, norm.mode=NONE)",
+    
+    # Cached kernel settings, left alone if not specified in user-provided yaml/distance string
+    decay.factor=0.2,
+    rbf.variance=100.0,
+    sst.control=1.0,
+    norm.mode='NONE'
+  )
+  
   # Reading tree from newick string
   observeEvent(
     input$processString,
@@ -240,8 +295,8 @@ server <- function(input, output, session) {
   observeEvent(
     input$processFile,
     {
-      newickFile <- input$newickFile
-      newickInput$data <- read.tree(newickFile$datapath)
+      inFile <- input$newickFile
+      newickInput$data <- read.tree(inFile$datapath)
     }
   )
   
@@ -261,30 +316,143 @@ server <- function(input, output, session) {
     updateSelectInput(session, "specificModel", choices = models[[input$generalModel]])
   })
   
-  # Downloading the config file corresponding to the choosen specific model
-  output$downloadDefaultConfigurationFile <- downloadHandler(
-    filename = function() {
-      paste0(input$specificModel, ".yaml")
-    },
-    content = function(file) {
-      file.copy(paste0("configs/", input$specificModel, ".yaml"), file)
-    }
+  # Displaying priors for a specific model in tabs
+  output$priorsTabs <- renderUI({
+    nTabs = length(parameters[[input$specificModel]])
+    tabs = lapply(seq_len(nTabs), function(i) {
+      distribution = paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+      tabPanel(
+        paste0(parameters[[input$specificModel]][[i]]),
+        uiOutput(paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]])),
+        uiOutput(paste0(distribution, "Parameters"))
+      )
+    })
+    do.call(tabsetPanel, tabs)
+  })
+  
+  # Creating a distribution  drop down menu input for each specific prior
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      output[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]])]] <- renderUI({
+        distribution = paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+        selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
+      })
+    }),
+    priority = 100
   )
   
-  # Handling config file upload by the user
+  # Creating a series of numeric inputs for each prior's distribution parameters
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      distribution = paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+      output[[paste0(distribution, "Parameters")]] <- renderUI({
+        nNumericInputs = length(distributions[[input[[distribution]]]])
+        numericInputs = lapply(seq_len(nNumericInputs), function(i) {
+          numericInput(
+            inputId = paste0(distribution, input[[distribution]], i),
+            label = paste0(names(distributions[[input[[distribution]]]])[[i]]),
+            value = distributions[[input[[distribution]]]][[i]][[3]],
+            max = distributions[[input[[distribution]]]][[i]][[2]],
+            min = distributions[[input[[distribution]]]][[i]][[1]]
+          )
+        })
+        do.call(wellPanel, numericInputs)
+      })
+    }),
+    priority = 99
+  )
+  
+  # Displaying proposals for a specific model in tabs
+  output$proposalsTabs <- renderUI({
+    nTabs = length(parameters[[input$specificModel]])
+    tabs = lapply(seq_len(nTabs), function(i) {
+      distribution = paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
+      tabPanel(
+        paste0(parameters[[input$specificModel]][[i]]),
+        uiOutput(paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]])),
+        uiOutput(paste0(distribution, "Parameters"))
+      )
+    })
+    do.call(tabsetPanel, tabs)
+  })
+  
+  # Creating a distribution  drop down menu input for each specific proposal
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      output[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]])]] <- renderUI({
+        distribution = paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
+        selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
+      })
+    }),
+    priority = 100
+  )
+  
+  
+  # Creating a series of numeric inputs for each proposal's distribution parameters
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      distribution = paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
+      output[[paste0(distribution, "Parameters")]] <- renderUI({
+        nNumericInputs = length(distributions[[input[[distribution]]]])
+        numericInputs = lapply(seq_len(nNumericInputs), function(i) {
+          numericInput(
+            inputId = paste0(distribution, input[[distribution]], i),
+            label = paste0(names(distributions[[input[[distribution]]]])[[i]]),
+            value = distributions[[input[[distribution]]]][[i]][[3]],
+            max = distributions[[input[[distribution]]]][[i]][[2]],
+            min = distributions[[input[[distribution]]]][[i]][[1]]
+          )
+        })
+        do.call(wellPanel, numericInputs)
+      })
+    }),
+    priority = 99
+  )
+  
+  # Function for creating string expressions of distribution parameters that correspond to config formatting
+  distribution.parameters <- function(distributionString, distributionInputID) {
+    distributionParameters <- list()
+    for(i in seq_len(length(distributions[[distributionString]]))) {
+      distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], i)]])
+    }
+    return(paste0(distributionParameters, collapse = ","))
+  }
+  
+  # Initializing config, plotting priors and proposals, and running Kaphi
+  uniqueTraceFileName <- Sys.time()
+  trace <- reactiveValues()
   observeEvent(
-    input$configFile,
+    input$runKaphi,
     {
-      # Loading configuration file
-      configFile <- input$configFile
-      config <- load.config(configFile$datapath)
+      # Setting config class
+      class(config) <- "smc.config"
+      # Populating config with SMC settings
+      config$nparticle <- input$particleNumber
+      config$nsample <- input$sampleNumber
+      config$ess.tolerance <- input$ESSTolerance
+      config$final.epsilon <- input$finalEpsilon
+      config$final.accept.rate <- input$finalAcceptanceRate
+      config$quality <- input$quality
+      config$step.tolerance <- input$stepTolerance
+      # Populating config with priors and proposals
+      for(i in seq_len(length(parameters[[input$specificModel]]))) {
+        parameter <- toString(parameters[[input$specificModel]][[i]])
+        priorDistribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+        proposalDistribution <- paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
+        config$params[[i]] <- parameter
+        config$priors[[parameter]] <- paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
+        config$prior.densities[[parameter]] <- paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
+        config$proposals[[parameter]] <- paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
+        config$proposal.densities[[parameter]] <- paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
+      }
+      # Setting config model
       config <- set.model(config, input$specificModel)
       # Plotting prior distributions (heavily inspired by plot.smc.config)
       y <- rbind(sapply(1:1000, function(x) sample.priors(config)))
       if (nrow(y) == 1){
         rownames(y)[1] <- names(config$priors)
       }
-      h <- apply(y, 1, density) 
+      h <- apply(y, 1, density)
       output$priorsDistributionsPlots <- renderUI({
         nTabs = length(names(config$priors))
         tabs = lapply(seq_len(nTabs), function(i) {
@@ -303,19 +471,6 @@ server <- function(input, output, session) {
           )
         })
       )
-    }
-  )
-  
-  uniqueTraceFileName <- Sys.time()
-  trace <- reactiveValues()
-  # Running Kaphi
-  observeEvent(
-    input$runKaphi,
-    {
-      # Loading configuration file
-      configFile <- input$configFile
-      config <- load.config(configFile$datapath)
-      config <- set.model(config, input$specificModel)
       # Loading tree input
       if (is.null(newickInput$data)) return()
       obs.tree <- newickInput$data
