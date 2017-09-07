@@ -423,6 +423,7 @@ server <- function(input, output, session) {
   observeEvent(
     input$initializeConfig,
     {
+      class(config) <- "smc.config"
       config$nparticle <- input$particleNumber
       config$nsample <- input$sampleNumber
       config$ess.tolerance <- input$ESSTolerance
@@ -441,7 +442,6 @@ server <- function(input, output, session) {
         config$proposal.densities[[parameter]] <- paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
       }
       config <- set.model(config, input$specificModel)
-      print.smc.config(config)
       # Plotting prior distributions (heavily inspired by plot.smc.config)
       y <- rbind(sapply(1:1000, function(x) sample.priors(config)))
       if (nrow(y) == 1){
