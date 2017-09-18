@@ -195,32 +195,108 @@ ui <- fluidPage(
         ),
         
         mainPanel(
-          # Tree visualization
-          selectInput(
-            inputId = "treeFormat", 
-            label = "Tree Format", 
-            choices = c(Rectangular = "rectangular", Circular = "circular", Radial = "radial", Hierarchical = "hierarchical")
-          ),
-          fluidRow(
-            column(width = 6, sliderInput("width", "Panel Width (px)", min = 1, max = 10000, value = 1000)),
-            column(width = 6, sliderInput("height", "Panel Height (px)", min = 1, max = 10000, value = 1000))
-          ),
-          uiOutput("treeVisualization")
+          tabsetPanel(
+            # Tree plot
+            tabPanel(
+              title = "Tree Plot",
+              # Tree visualization
+              selectInput(
+                inputId = "treeFormat", 
+                label = "Tree Format", 
+                choices = c(Rectangular = "rectangular", Circular = "circular", Radial = "radial", Hierarchical = "hierarchical")
+              ),
+              fluidRow(
+                column(width = 6, sliderInput("width", "Panel Width (px)", min = 1, max = 10000, value = 1000)),
+                column(width = 6, sliderInput("height", "Panel Height (px)", min = 1, max = 10000, value = 1000))
+              ),
+              uiOutput("treeVisualization")
+            )
+          )
         )
         
       )
     ),
     
     tabPanel(
-      title = "SMC Settings"
+      title = "SMC Settings",
+      wellPanel(
+        # SMC settings
+        fluidRow(
+          h3(strong(em("SMC Settings"))),
+          numericInput(inputId = "particleNumber", label = "Number of Particles", value = 100),
+          numericInput(inputId = "sampleNumber", label = "Number of Samples", value = 5),
+          numericInput(inputId = "ESSTolerance", label = "Effective Sample Size (ESS) Tolerance", value = 50.0),
+          numericInput(inputId = "finalEpsilon", label = "Final Epsilon", value = 0.05),
+          numericInput(inputId = "finalAcceptanceRate", label = "Final Acceptance Rate", value = 0.05),
+          numericInput(inputId = "quality", label = "Quality", value = 0.95),
+          numericInput(inputId = "stepTolerance", label = "Step Tolerance", value = 1e-4)
+        )
+      )
     ),
     
     tabPanel(
-      title = "Priors Settings"
+      title = "Priors Settings",
+      sidebarLayout(
+        
+        sidebarPanel(
+          # Model selection and config settings
+          fluidRow(
+            h3(strong(em("Model Selection and Config Settings"))),
+            selectInput("generalModel", "General Model", names(models)),
+            selectInput("specificModel", "Specific Model", models[[1]]),
+            tabsetPanel(
+              # Priors
+              tabPanel(
+                title = "Priors",
+                uiOutput("priorsTabs")
+              ),
+              # Proposals
+              tabPanel(
+                title = "Proposals",
+                uiOutput("proposalsTabs")
+              )
+            )
+          )
+        ),
+        
+        mainPanel(
+          tabsetPanel(
+            # Prior distributions
+            tabPanel(
+              title = "Priors Distributions",
+              uiOutput(outputId = "priorsDistributionsPlots")
+            )
+          )
+        )
+        
+      )
     ),
     
     tabPanel(
-      title = "Run & Review"
+      title = "Run & Review",
+      sidebarLayout(
+        
+        sidebarPanel(
+          # Run Kaphi
+          fluidRow(
+            h3(strong(em("Run Kaphi"))),
+            actionButton(inputId = "runKaphi", label = "Run Kaphi")
+          )
+        ),
+        
+        mainPanel(
+          tabsetPanel(
+            # Feedback, diagnosis, and results 
+            tabPanel(
+              title = "SMC-ABC Run",
+              verbatimTextOutput("consoleHeading"),
+              verbatimTextOutput("console"),
+              uiOutput("downloadTraceFileButton")
+            )
+          )
+        )
+        
+      )
     ),
     
     uiOutput(outputId = "resultsPage")
