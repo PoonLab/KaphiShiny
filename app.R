@@ -1,39 +1,49 @@
 ## TODO: assign a smaller variable dist <- [[input[[distribution]]]] to clean up code
 
 library(shiny)
+library(shinyLP)
 library(Kaphi)
 library(phylocanvas)
 
 distributions <- list(
+  
   exp = list(
     rate = list(Lower = 0, Upper = Inf, Default = 1)
   ),
+  
   gamma = list(
     rate = list(Lower = 0, Upper = Inf, Default = 1),
     shape = list(Lower = 0, Upper = Inf, Default = 1)
   ),
+  
   lnorm = list(
     mean = list(Lower = 0, Upper = Inf, Default = 1),
     sd = list(Lower = 0, Upper = Inf, Default = 1)
   ),
+  
   norm = list(
     mean = list(Lower = 0, Upper = Inf, Default = 1),
     sd = list(Lower = 0, Upper = Inf, Default = 1)
   )
+  
 )
 
 models <- list(
+  
   "Coalescent" = list(
     Constant = "const.coalescent"
   ),
+  
   "Compartmental" = list(
     SIRD = "sir.dynamic",
     SIRND = "sir.nondynamic",
     SEIR = "seir",
     SIS = "sis"
   ),
+  
   "Networks" = list(
   ),
+  
   "Speciation" = list(
     Yule = "yule", 
     BirthDeath = "bd",
@@ -44,39 +54,48 @@ models <- list(
     BiSSness = "bisseness",
     ClaSSE  = "classe"
   )
+  
 )
 
 parameters <- list(
+  
   const.coalescent = list(
     "Ne.tau"
   ),
+  
   sir.dynamic = list(
     "beta",
     "gamma",
     "mu"
   ),
+  
   sir.nondynamic = list(
     "beta",
     "gamma"
   ),
+  
   seir= list(
     "beta",
     "gamma",
     "mu", 
     "alpha" 
   ),
+  
   sis = list(
     "beta",
     "gamma",
     "mu"
   ),
+  
   yule = list(
     "lambda"
   ), 
+  
   bd = list(
     "lambda",
     "mu" 
   ),
+  
   bisse = list(
     "lambda0",
     "lambda1",
@@ -85,6 +104,7 @@ parameters <- list(
     "q01",
     "q10"
   ),
+  
   musse = list(
     "lambda1", 
     "lambda2",
@@ -99,11 +119,13 @@ parameters <- list(
     "q31",
     "q32"
   ),
+  
   quasse = list(
     "lambda",
     "mu",
     "char"
   ),
+  
   geosse = list(
     "sA",
     "sB",
@@ -113,6 +135,7 @@ parameters <- list(
     "dA",
     "dB"
   ),
+  
   bisseness = list(
     "lambda0",
     "lambda1",
@@ -125,6 +148,7 @@ parameters <- list(
     "p1c",
     "p1a" 
   ),
+  
   classe = list(
     "lambda111",
     "lambda112",
@@ -137,9 +161,43 @@ parameters <- list(
     "q12",
     "q21"
   )
+  
 )
 
 ui <- fluidPage(
+    
+  navbarPage(
+    
+    # Page title
+    windowTitle = "Kaphi - Kernel-embedded ABC-SMC for phylodynamic inference",
+      
+    # Navbar title
+    title = strong("Kaphi"),
+      
+    tabPanel(
+      title = "Home",
+      jumbotron(header = "Kaphi", content = "Kernel-embedded ABC-SMC for phylodynamic inference", button = FALSE)
+    ),
+    
+    tabPanel(
+      title = "Tree Input"
+    ),
+    
+    tabPanel(
+      title = "SMC Settings"
+    ),
+    
+    tabPanel(
+      title = "Priors Settings"
+    ),
+    
+    tabPanel(
+      title = "Run"
+    ),
+    
+    uiOutput(outputId = "resultsPage")
+    
+  )
   
 )  
 
