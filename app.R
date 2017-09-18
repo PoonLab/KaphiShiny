@@ -180,7 +180,35 @@ ui <- fluidPage(
     ),
     
     tabPanel(
-      title = "Tree Input"
+      title = "Tree Input",
+      sidebarLayout(
+        
+        sidebarPanel(
+          # Newick text/file input 
+          fluidRow(
+            h3(strong(em("Newick Input"))),
+            textInput(inputId = "newickString", label = "Enter a Newick String"), 
+            fileInput(inputId = "newickFile", label = "Choose a Newick File"),
+            actionButton(inputId = "processString", label = "Process String"),
+            actionButton(inputId = "processFile", label = "Process File")
+          )
+        ),
+        
+        mainPanel(
+          # Tree visualization
+          selectInput(
+            inputId = "treeFormat", 
+            label = "Tree Format", 
+            choices = c(Rectangular = "rectangular", Circular = "circular", Radial = "radial", Hierarchical = "hierarchical")
+          ),
+          fluidRow(
+            column(width = 6, sliderInput("width", "Panel Width (px)", min = 1, max = 10000, value = 1000)),
+            column(width = 6, sliderInput("height", "Panel Height (px)", min = 1, max = 10000, value = 1000))
+          ),
+          uiOutput("treeVisualization")
+        )
+        
+      )
     ),
     
     tabPanel(
@@ -192,7 +220,7 @@ ui <- fluidPage(
     ),
     
     tabPanel(
-      title = "Run"
+      title = "Run & Review"
     ),
     
     uiOutput(outputId = "resultsPage")
