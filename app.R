@@ -255,7 +255,8 @@ ui <- fluidPage(
                 title = "Proposals",
                 uiOutput("proposalsTabs")
               )
-            )
+            ),
+            actionButton(inputId = "plotPriorsDistributions", label = "Plot Priors Distributions")
           )
         ),
         
@@ -306,6 +307,272 @@ ui <- fluidPage(
 )  
 
 server <- function(input, output, session) {
+  
+  newickInput <- reactiveValues(data = NULL)
+  
+  config <- reactive({ list(
+    
+    params=NA,
+    priors=list(),
+    prior.densities=list(),
+    constraints=NULL,
+    proposals=list(),
+    proposal.densities=list(),
+    model=NA,
+    
+    # SMC settings
+    nparticle=1000,
+    nsample=5,
+    ess.tolerance=1.5,
+    final.epsilon=0.01,
+    final.accept.rate=0.015,
+    quality=0.95,
+    step.tolerance=1e-5,
+    
+    # Distance settings: kernel, sackin, tree.width, etc
+    dist="1*Kaphi::kernel.dist(x, y, decay.factor=0.2, rbf.variance=100, sst.control=1, norm.mode=NONE)",
+    
+    # Cached kernel settings, left alone if not specified in user-provided yaml/distance string
+    decay.factor=0.2,
+    rbf.variance=100.0,
+    sst.control=1.0,
+    norm.mode='NONE'
+    
+  ) })
+  
+  # Reading tree from newick string
+  observeEvent(
+    input$processString,
+    {
+      newickInput$data <- read.tree(text = input$newickString)
+    }
+  )
+  
+  # Reading tree from newick file
+  observeEvent(
+    input$processFile,
+    {
+      inFile <- input$newickFile
+      newickInput$data <- read.tree(inFile$datapath)
+    }
+  )
+  
+  # Plotting newick input
+  output$tree <- renderPhylocanvas({
+    if (is.null(newickInput$data)) return()
+    phylocanvas(newickInput$data, treetype = input$treeFormat)
+  })
+  
+  # Rendering newick input
+  output$treeVisualization <- renderUI({
+    phylocanvasOutput("tree", width = input$width, height = input$height)
+  })
+  
+  # Handling general and specific model selection
+  observe({
+    updateSelectInput(session, "specificModel", choices = models[[input$generalModel]])
+  })
+  
+  # Displaying priors for a specific model in tabs
+  output$priorsTabs <- renderUI({
+    nTabs = length(parameters[[input$specificModel]])
+    tabs = lapply(seq_len(nTabs), function(i) {
+      distribution = paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+      tabPanel(
+        paste0(parameters[[input$specificModel]][[i]]),
+        uiOutput(paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]])),
+        uiOutput(paste0(distribution, "Parameters"))
+      )
+    })
+    do.call(tabsetPanel, tabs)
+  })
+  
+  # Creating a distribution  drop down menu input for each specific prior
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      output[[paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]])]] <- renderUI({
+        distribution = paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+        selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
+      })
+    }),
+    priority = 100
+  )
+  
+  # Creating a series of numeric inputs for each prior's distribution parameters
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      distribution = paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+      output[[paste0(distribution, "Parameters")]] <- renderUI({
+        nNumericInputs = length(distributions[[input[[distribution]]]])
+        numericInputs = lapply(seq_len(nNumericInputs), function(i) {
+          numericInput(
+            inputId = paste0(distribution, input[[distribution]], i),
+            label = paste0(names(distributions[[input[[distribution]]]])[[i]]),
+            value = distributions[[input[[distribution]]]][[i]][[3]],
+            max = distributions[[input[[distribution]]]][[i]][[2]],
+            min = distributions[[input[[distribution]]]][[i]][[1]]
+          )
+        })
+        do.call(wellPanel, numericInputs)
+      })
+    }),
+    priority = 99
+  )
+  
+  # Displaying proposals for a specific model in tabs
+  output$proposalsTabs <- renderUI({
+    nTabs = length(parameters[[input$specificModel]])
+    tabs = lapply(seq_len(nTabs), function(i) {
+      distribution = paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
+      tabPanel(
+        paste0(parameters[[input$specificModel]][[i]]),
+        uiOutput(paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]])),
+        uiOutput(paste0(distribution, "Parameters"))
+      )
+    })
+    do.call(tabsetPanel, tabs)
+  })
+  
+  # Creating a distribution  drop down menu input for each specific proposal
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      output[[paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]])]] <- renderUI({
+        distribution = paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
+        selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
+      })
+    }),
+    priority = 100
+  )
+  
+  
+  # Creating a series of numeric inputs for each proposal's distribution parameters
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      distribution = paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
+      output[[paste0(distribution, "Parameters")]] <- renderUI({
+        nNumericInputs = length(distributions[[input[[distribution]]]])
+        numericInputs = lapply(seq_len(nNumericInputs), function(i) {
+          numericInput(
+            inputId = paste0(distribution, input[[distribution]], i),
+            label = paste0(names(distributions[[input[[distribution]]]])[[i]]),
+            value = distributions[[input[[distribution]]]][[i]][[3]],
+            max = distributions[[input[[distribution]]]][[i]][[2]],
+            min = distributions[[input[[distribution]]]][[i]][[1]]
+          )
+        })
+        do.call(wellPanel, numericInputs)
+      })
+    }),
+    priority = 99
+  )
+  
+  # Initializing config, plotting priors distributions
+  observeEvent(
+    input$plotPriorsDistributions,
+    {
+      # Setting config class
+      class(config) <- "smc.config"
+      # Populating config with SMC settings
+      config$nparticle <- input$particleNumber
+      config$nsample <- input$sampleNumber
+      config$ess.tolerance <- input$ESSTolerance
+      config$final.epsilon <- input$finalEpsilon
+      config$final.accept.rate <- input$finalAcceptanceRate
+      config$quality <- input$quality
+      config$step.tolerance <- input$stepTolerance
+      # Populating config with priors and proposals
+      for(i in seq_len(length(parameters[[input$specificModel]]))) {
+        parameter <- toString(parameters[[input$specificModel]][[i]])
+        priorDistribution <- paste0(input$specificModel, "Prior", parameters[[input$specificModel]][[i]], "Distribution")
+        proposalDistribution <- paste0(input$specificModel, "Proposal", parameters[[input$specificModel]][[i]], "Distribution")
+        config$params[[i]] <- parameter
+        config$priors[[parameter]] <- paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
+        config$prior.densities[[parameter]] <- paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
+        config$proposals[[parameter]] <- paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
+        config$proposal.densities[[parameter]] <- paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
+      }
+      # Setting config model
+      config <- set.model(config, input$specificModel)
+      # Plotting prior distributions (heavily inspired by plot.smc.config)
+      y <- rbind(sapply(1:1000, function(x) sample.priors(config)))
+      if (nrow(y) == 1){
+        rownames(y)[1] <- names(config$priors)
+      }
+      h <- apply(y, 1, density)
+      output$priorsDistributionsPlots <- renderUI({
+        nTabs = length(names(config$priors))
+        tabs = lapply(seq_len(nTabs), function(i) {
+          tabPanel(
+            paste0(names(config$priors)[[i]]),
+            plotOutput(outputId = paste0(names(config$priors)[[i]], "Plot"))
+          )
+        })
+        do.call(tabsetPanel, tabs)
+      })
+      observe(
+        lapply(seq_len(length(names(config$priors))), function(i) {
+          q <- quantile(y[i,], c(0.05, 0.95))
+          output[[paste0(names(config$priors)[[i]], "Plot")]] <- renderPlot(
+            plot(h[[i]], xlab=names(h)[i], main=paste0("Sample prior distribution of ", names(config$priors)[[i]]), xlim=q)
+          )
+        })
+      )
+    }
+  )
+  
+  # Function for creating string expressions of distribution parameters that correspond to config formatting
+  distribution.parameters <- function(distributionString, distributionInputID) {
+    distributionParameters <- list()
+    for(i in seq_len(length(distributions[[distributionString]]))) {
+      distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], i)]])
+    }
+    return(paste0(distributionParameters, collapse = ","))
+  }
+  
+  # Running Kaphi
+  uniqueTraceFileName <- Sys.time()
+  trace <- reactiveValues()
+  observeEvent(
+    input$runKaphi,
+    {
+      # Loading tree input
+      if (is.null(newickInput$data)) return()
+      obs.tree <- newickInput$data
+      obs.tree <- parse.input.tree(obs.tree, config)
+      # Initializing workspace
+      ws <- init.workspace(obs.tree, config)
+      # Running ABC-SMC and outputing the console output to the user
+      output$console <- renderPrint({
+        logText()
+        return(print(trace[["log"]]))
+      })
+      logText <- reactive({
+        trace[["log"]] <- capture.output(res <- run.smc(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel))
+      })
+      output$consoleHeading <- renderText("Trace of SMC-ABC Run:")
+      # Rendering download button to download trace file
+      output$downloadTraceFileButton <- renderUI({
+        downloadButton(outputId = "downloadTraceFile", label = "Download Trace File")
+      })
+    }
+  )
+  
+  # Downloading the generated trace file
+  output$downloadTraceFile <- downloadHandler(
+    filename = function() {
+      sprintf("%s.tsv", uniqueTraceFileName)
+    },
+    content = function(file) {
+      file.copy(sprintf("tmp/%s.tsv", uniqueTraceFileName), file)
+    }
+  )
+  
+  # Deleting user trace files after the user ends their session
+  session$onSessionEnded(function() {
+    if (file.exists(sprintf("tmp/%s.tsv", uniqueTraceFileName))) {
+      file.remove(sprintf("tmp/%s.tsv", uniqueTraceFileName))
+    }
+  })
   
 }
 
