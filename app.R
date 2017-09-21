@@ -255,8 +255,7 @@ ui <- fluidPage(
                 title = "Proposals",
                 uiOutput("proposalsTabs")
               )
-            ),
-            actionButton(inputId = "plotPriorsDistributions", label = "Plot Priors Distributions")
+            )
           )
         ),
         
@@ -310,7 +309,7 @@ server <- function(input, output, session) {
   
   newickInput <- reactiveValues(data = NULL)
   
-  config <- reactive({ list(
+  config <- list(
     
     params=NA,
     priors=list(),
@@ -338,7 +337,7 @@ server <- function(input, output, session) {
     sst.control=1.0,
     norm.mode='NONE'
     
-  ) })
+  ) 
   
   # Reading tree from newick string
   observeEvent(
@@ -466,9 +465,20 @@ server <- function(input, output, session) {
     priority = 99
   )
   
-  # Initializing config, plotting priors distributions
+  # Function for creating string expressions of distribution parameters that correspond to config formatting
+  distribution.parameters <- function(distributionString, distributionInputID) {
+    distributionParameters <- list()
+    for(i in seq_len(length(distributions[[distributionString]]))) {
+      distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], i)]])
+    }
+    return(paste0(distributionParameters, collapse = ","))
+  }
+  
+  # Initializing config, plotting priors distributions, and running Kaphi
+  uniqueTraceFileName <- Sys.time()
+  trace <- reactiveValues()
   observeEvent(
-    input$plotPriorsDistributions,
+    input$runKaphi,
     {
       # Setting config class
       class(config) <- "smc.config"
@@ -517,24 +527,6 @@ server <- function(input, output, session) {
           )
         })
       )
-    }
-  )
-  
-  # Function for creating string expressions of distribution parameters that correspond to config formatting
-  distribution.parameters <- function(distributionString, distributionInputID) {
-    distributionParameters <- list()
-    for(i in seq_len(length(distributions[[distributionString]]))) {
-      distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionInputID, input[[distributionInputID]], i)]])
-    }
-    return(paste0(distributionParameters, collapse = ","))
-  }
-  
-  # Running Kaphi
-  uniqueTraceFileName <- Sys.time()
-  trace <- reactiveValues()
-  observeEvent(
-    input$runKaphi,
-    {
       # Loading tree input
       if (is.null(newickInput$data)) return()
       obs.tree <- newickInput$data
