@@ -219,6 +219,7 @@ ui <- fluidPage(
     
     tabPanel(
       title = "SMC Settings",
+      
       wellPanel(
         # SMC settings
         fluidRow(
@@ -232,6 +233,7 @@ ui <- fluidPage(
           numericInput(inputId = "stepTolerance", label = "Step Tolerance", value = 1e-4)
         )
       )
+      
     ),
     
     tabPanel(
@@ -255,7 +257,8 @@ ui <- fluidPage(
                 title = "Proposals",
                 uiOutput("proposalsTabs")
               )
-            )
+            ),
+            actionButton(inputId = "runKaphi", label = "Run Kaphi")
           )
         ),
         
@@ -273,33 +276,21 @@ ui <- fluidPage(
     ),
     
     tabPanel(
-      title = "Run & Review",
-      sidebarLayout(
+      title = "Result",
         
-        sidebarPanel(
-          # Run Kaphi
-          fluidRow(
-            h3(strong(em("Run Kaphi"))),
-            actionButton(inputId = "runKaphi", label = "Run Kaphi")
-          )
-        ),
-        
-        mainPanel(
-          tabsetPanel(
-            # Feedback, diagnosis, and results 
-            tabPanel(
-              title = "SMC-ABC Run",
-              verbatimTextOutput("consoleHeading"),
-              verbatimTextOutput("console"),
-              uiOutput("downloadTraceFileButton")
-            )
+      wellPanel(
+        tabsetPanel(
+          # Feedback, diagnosis, and results 
+          tabPanel(
+            title = "SMC-ABC Run",
+            verbatimTextOutput("consoleHeading"),
+            verbatimTextOutput("console"),
+            uiOutput("downloadTraceFileButton")
           )
         )
-        
       )
-    ),
-    
-    uiOutput(outputId = "resultsPage")
+        
+    )
     
   )
   
