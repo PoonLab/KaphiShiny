@@ -293,22 +293,22 @@ ui <- fluidPage(
         ),
         
         mainPanel(
-          # tabsetPanel(
-          #   # Plots of tsv file
-          #   tabPanel(
-          #     title = "Results",
-          #     tabsetPanel(
-          #       tabPanel(
-          #         title = "Means Trajectories",
-          #         uiOutput("meansTrajectories")
-          #       ),
-          #       tabsetPanel(
-          #         title = "Posteriors Approximations",
-          #         uiOutput("posteriorsApproximations")
-          #       )
-          #     )
-          #   )
-          # )
+          tabsetPanel(
+            # Plots of tsv file
+            tabPanel(
+              title = "Results",
+              tabsetPanel(
+                tabPanel(
+                  title = "Means Trajectories",
+                  uiOutput("meansTrajectories")
+                ),
+                tabPanel(
+                  title = "Posteriors Approximations",
+                  uiOutput("posteriorsApproximations")
+                )
+              )
+            )
+          )
         )
         
       )
@@ -560,26 +560,28 @@ server <- function(input, output, session) {
       output$downloadTraceFileButton <- renderUI({
         downloadButton(outputId = "downloadTraceFile", label = "Download Trace File")
       })
-      # # Rendering means trajectories in separate tabs
-      # output$meansTrajectories <- renderUI({
-      #   nTabs = length(parameters[[input$specificModel]])
-      #   tabs = lapply(seq_len(nTabs), function(i) {
-      #     tabPanel(
-      #       plotOutput(outputId = paste0("meanTrajectoryOf", parameters[[input$specificModel]][[i]]))
-      #     )
-      #   })
-      #   do.call(tabsetPanel, tabs)
-      # })
-      # # Rendering posteriors approximations in separate tabs
-      # output$posteriorsApproximations <- renderUI({
-      #   nTabs = length(parameters[[input$specificModel]])
-      #   tabs = lapply(seq_len(nTabs), function(i) {
-      #     tabPanel(
-      #       plotOutput(outputId = paste0("posteriorApproximationsOf", parameters[[input$specificModel]][[i]]))
-      #     )
-      #   })
-      #   do.call(tabsetPanel, tabs)
-      # })
+      # Rendering means trajectories in separate tabs
+      output$meansTrajectories <- renderUI({
+        nTabs = length(parameters[[input$specificModel]])
+        tabs = lapply(seq_len(nTabs), function(i) {
+          tabPanel(
+            paste0(parameters[[input$specificModel]][[i]]),
+            plotOutput(outputId = paste0("meanTrajectoryOf", parameters[[input$specificModel]][[i]]))
+          )
+        })
+        do.call(tabsetPanel, tabs)
+      })
+      # Rendering posteriors approximations in separate tabs
+      output$posteriorsApproximations <- renderUI({
+        nTabs = length(parameters[[input$specificModel]])
+        tabs = lapply(seq_len(nTabs), function(i) {
+          tabPanel(
+            paste0(parameters[[input$specificModel]][[i]]),
+            plotOutput(outputId = paste0("posteriorApproximationsOf", parameters[[input$specificModel]][[i]]))
+          )
+        })
+        do.call(tabsetPanel, tabs)
+      })
     }
   )
   
