@@ -571,6 +571,21 @@ server <- function(input, output, session) {
         })
         do.call(tabsetPanel, tabs)
       })
+      observe(
+        lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+          output[[paste0("meanTrajectoryOf", parameters[[input$specificModel]][[i]])]] <- renderPlot(
+            plot(
+              sapply(split(trace[[parameters[[input$specificModel]][[i]]]]*trace$weight, trace$n), sum),
+              ylim=c(0, 2),
+              type='o',
+              xlab='Iteration',
+              ylab=paste0('Mean', parameters[[input$specificModel]][[i]]),
+              cex.lab=1,
+              main=paste0('Trajectory of Mean ',  parameters[[input$specificModel]][[i]], ' (',  input$specificModel, ' Model)')
+            )
+          )
+        })
+      )
       # Rendering posteriors approximations in separate tabs
       output$posteriorsApproximations <- renderUI({
         nTabs = length(parameters[[input$specificModel]])
@@ -582,6 +597,13 @@ server <- function(input, output, session) {
         })
         do.call(tabsetPanel, tabs)
       })
+      # observe(
+      #   lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      #     output[[paste0("posteriorApproximationsOf", parameters[[input$specificModel]][[i]])]] <- renderPlot(
+      #       
+      #     )
+      #   })
+      # )
     }
   )
   
