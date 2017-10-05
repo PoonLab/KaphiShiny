@@ -6,44 +6,35 @@ library(Kaphi)
 library(phylocanvas)
 
 distributions <- list(
-  
   exp = list(
     rate = list(Lower = 0, Upper = Inf, Default = 1)
   ),
-  
   gamma = list(
     rate = list(Lower = 0, Upper = Inf, Default = 1),
     shape = list(Lower = 0, Upper = Inf, Default = 1)
   ),
-  
   lnorm = list(
     mean = list(Lower = 0, Upper = Inf, Default = 1),
     sd = list(Lower = 0, Upper = Inf, Default = 1)
   ),
-  
   norm = list(
     mean = list(Lower = 0, Upper = Inf, Default = 1),
     sd = list(Lower = 0, Upper = Inf, Default = 1)
   )
-  
 )
 
 models <- list(
-  
   "Coalescent" = list(
     Constant = "const.coalescent"
   ),
-  
   "Compartmental" = list(
     SIRD = "sir.dynamic",
     SIRND = "sir.nondynamic",
     SEIR = "seir",
     SIS = "sis"
   ),
-  
   "Networks" = list(
   ),
-  
   "Speciation" = list(
     Yule = "yule", 
     BirthDeath = "bd",
@@ -54,48 +45,39 @@ models <- list(
     BiSSness = "bisseness",
     ClaSSE  = "classe"
   )
-  
 )
 
 parameters <- list(
-  
   const.coalescent = list(
     "Ne.tau"
   ),
-  
   sir.dynamic = list(
     "beta",
     "gamma",
     "mu"
   ),
-  
   sir.nondynamic = list(
     "beta",
     "gamma"
   ),
-  
   seir= list(
     "beta",
     "gamma",
     "mu", 
     "alpha" 
   ),
-  
   sis = list(
     "beta",
     "gamma",
     "mu"
   ),
-  
   yule = list(
     "lambda"
   ), 
-  
   bd = list(
     "lambda",
     "mu" 
   ),
-  
   bisse = list(
     "lambda0",
     "lambda1",
@@ -104,7 +86,6 @@ parameters <- list(
     "q01",
     "q10"
   ),
-  
   musse = list(
     "lambda1", 
     "lambda2",
@@ -119,13 +100,11 @@ parameters <- list(
     "q31",
     "q32"
   ),
-  
   quasse = list(
     "lambda",
     "mu",
     "char"
   ),
-  
   geosse = list(
     "sA",
     "sB",
@@ -135,7 +114,6 @@ parameters <- list(
     "dA",
     "dB"
   ),
-  
   bisseness = list(
     "lambda0",
     "lambda1",
@@ -148,7 +126,6 @@ parameters <- list(
     "p1c",
     "p1a" 
   ),
-  
   classe = list(
     "lambda111",
     "lambda112",
@@ -161,28 +138,21 @@ parameters <- list(
     "q12",
     "q21"
   )
-  
 )
 
 ui <- fluidPage(
-    
   navbarPage(
-    
     # Page title
     windowTitle = "Kaphi - Kernel-embedded ABC-SMC for phylodynamic inference",
-      
     # Navbar title
     title = strong("Kaphi"),
-      
     tabPanel(
       title = "Home",
       jumbotron(header = "Kaphi", content = "Kernel-embedded ABC-SMC for phylodynamic inference", button = FALSE)
     ),
-    
     tabPanel(
       title = "Tree Input",
       sidebarLayout(
-        
         sidebarPanel(
           # Newick text/file input 
           fluidRow(
@@ -193,7 +163,6 @@ ui <- fluidPage(
             actionButton(inputId = "processFile", label = "Process File")
           )
         ),
-        
         mainPanel(
           tabsetPanel(
             # Tree plot
@@ -213,13 +182,10 @@ ui <- fluidPage(
             )
           )
         )
-        
       )
     ),
-    
     tabPanel(
       title = "SMC Settings",
-      
       wellPanel(
         # SMC settings
         fluidRow(
@@ -233,13 +199,10 @@ ui <- fluidPage(
           numericInput(inputId = "stepTolerance", label = "Step Tolerance", value = 1e-4)
         )
       )
-      
     ),
-    
     tabPanel(
       title = "Priors Settings",
       sidebarLayout(
-        
         sidebarPanel(
           # Model selection and config settings
           fluidRow(
@@ -261,7 +224,6 @@ ui <- fluidPage(
             actionButton(inputId = "runKaphi", label = "Run Kaphi")
           )
         ),
-        
         mainPanel(
           tabsetPanel(
             # Prior distributions
@@ -271,60 +233,35 @@ ui <- fluidPage(
             )
           )
         )
-        
       )
     ),
-    
     tabPanel(
       title = "Results",
-      
-      sidebarLayout(
-        
-        sidebarPanel(
-          tabsetPanel(
-            # Feedback, diagnosis, and results 
-            tabPanel(
-              title = "Console Output",
-              verbatimTextOutput("consoleHeading"),
-              verbatimTextOutput("console"),
-              uiOutput("downloadTraceFileButton")
-            )
-          )
-        ),
-        
-        mainPanel(
-          tabsetPanel(
-            # Plots of tsv file
-            tabPanel(
-              title = "Results",
-              tabsetPanel(
-                tabPanel(
-                  title = "Means Trajectories",
-                  uiOutput("meansTrajectories")
-                ),
-                tabPanel(
-                  title = "Posteriors Approximations",
-                  uiOutput("posteriorsApproximations")
-                )
+      wellPanel(
+        tabsetPanel(
+          # Plots of tsv file
+          tabPanel(
+            title = "Results",
+            tabsetPanel(
+              tabPanel(
+                title = "Means Trajectories",
+                uiOutput("meansTrajectories")
+              ),
+              tabPanel(
+                title = "Posteriors Approximations",
+                uiOutput("posteriorsApproximations")
               )
             )
           )
         )
-        
       )
-        
     )
-    
   )
-  
 )  
 
 server <- function(input, output, session) {
-  
   newickInput <- reactiveValues(data = NULL)
-  
   config <- list(
-    
     params=NA,
     priors=list(),
     prior.densities=list(),
@@ -332,7 +269,6 @@ server <- function(input, output, session) {
     proposals=list(),
     proposal.densities=list(),
     model=NA,
-    
     # SMC settings
     nparticle=1000,
     nsample=5,
@@ -341,18 +277,14 @@ server <- function(input, output, session) {
     final.accept.rate=0.015,
     quality=0.95,
     step.tolerance=1e-5,
-    
     # Distance settings: kernel, sackin, tree.width, etc
     dist="1*Kaphi::kernel.dist(x, y, decay.factor=0.2, rbf.variance=100, sst.control=1, norm.mode=NONE)",
-    
     # Cached kernel settings, left alone if not specified in user-provided yaml/distance string
     decay.factor=0.2,
     rbf.variance=100.0,
     sst.control=1.0,
     norm.mode='NONE'
-    
   ) 
-  
   # Reading tree from newick string
   observeEvent(
     input$processString,
@@ -360,7 +292,6 @@ server <- function(input, output, session) {
       newickInput$data <- read.tree(text = input$newickString)
     }
   )
-  
   # Reading tree from newick file
   observeEvent(
     input$processFile,
@@ -369,23 +300,19 @@ server <- function(input, output, session) {
       newickInput$data <- read.tree(inFile$datapath)
     }
   )
-  
   # Plotting newick input
   output$tree <- renderPhylocanvas({
     if (is.null(newickInput$data)) return()
     phylocanvas(newickInput$data, treetype = input$treeFormat)
   })
-  
   # Rendering newick input
   output$treeVisualization <- renderUI({
     phylocanvasOutput("tree", width = input$width, height = input$height)
   })
-  
   # Handling general and specific model selection
   observe({
     updateSelectInput(session, "specificModel", choices = models[[input$generalModel]])
   })
-  
   # Displaying priors for a specific model in tabs
   output$priorsTabs <- renderUI({
     nTabs = length(parameters[[input$specificModel]])
@@ -399,7 +326,6 @@ server <- function(input, output, session) {
     })
     do.call(tabsetPanel, tabs)
   })
-  
   # Creating a distribution  drop down menu input for each specific prior
   observe(
     lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
@@ -410,7 +336,6 @@ server <- function(input, output, session) {
     }),
     priority = 100
   )
-  
   # Creating a series of numeric inputs for each prior's distribution parameters
   observe(
     lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
@@ -431,7 +356,6 @@ server <- function(input, output, session) {
     }),
     priority = 99
   )
-  
   # Displaying proposals for a specific model in tabs
   output$proposalsTabs <- renderUI({
     nTabs = length(parameters[[input$specificModel]])
@@ -445,7 +369,6 @@ server <- function(input, output, session) {
     })
     do.call(tabsetPanel, tabs)
   })
-  
   # Creating a distribution  drop down menu input for each specific proposal
   observe(
     lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
@@ -456,8 +379,6 @@ server <- function(input, output, session) {
     }),
     priority = 100
   )
-  
-  
   # Creating a series of numeric inputs for each proposal's distribution parameters
   observe(
     lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
@@ -478,7 +399,6 @@ server <- function(input, output, session) {
     }),
     priority = 99
   )
-  
   # Function for creating string expressions of distribution parameters that correspond to config formatting
   distribution.parameters <- function(distributionString, distributionInputID) {
     distributionParameters <- list()
@@ -487,7 +407,6 @@ server <- function(input, output, session) {
     }
     return(paste0(distributionParameters, collapse = ","))
   }
-  
   # Initializing config, plotting priors distributions, and running Kaphi
   uniqueTraceFileName <- Sys.time()
   trace <- reactiveValues()
@@ -547,19 +466,10 @@ server <- function(input, output, session) {
       obs.tree <- parse.input.tree(obs.tree, config)
       # Initializing workspace
       ws <- init.workspace(obs.tree, config)
-      # Running ABC-SMC and outputing the console output to the user
-      output$console <- renderPrint({
-        logText()
-        return(print(trace[["log"]]))
-      })
-      logText <- reactive({
-        trace[["log"]] <- capture.output(res <- run.smc(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel))
-      })
-      output$consoleHeading <- renderText("Trace of SMC-ABC Run:")
-      # Rendering download button to download trace file
-      output$downloadTraceFileButton <- renderUI({
-        downloadButton(outputId = "downloadTraceFile", label = "Download Trace File")
-      })
+      # Running ABC-SMC 
+      res <- run.smc(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel)
+      # Examining the content of the trace file
+      trace <- read.table(sprintf("tmp/%s.tsv", uniqueTraceFileName), header=T, sep='\t')
       # Rendering means trajectories in separate tabs
       output$meansTrajectories <- renderUI({
         nTabs = length(parameters[[input$specificModel]])
@@ -581,7 +491,7 @@ server <- function(input, output, session) {
               xlab='Iteration',
               ylab=paste0('Mean', parameters[[input$specificModel]][[i]]),
               cex.lab=1,
-              main=paste0('Trajectory of Mean ',  parameters[[input$specificModel]][[i]], ' (',  input$specificModel, ' Model)')
+              main=paste0('Trajectory of Mean ',  names(parameters[[input$specificModel]][[i]]), ' (',  names(input$specificModel), ' Model, ', input$particleNumber, ' Particles)')
             )
           )
         })
@@ -597,33 +507,14 @@ server <- function(input, output, session) {
         })
         do.call(tabsetPanel, tabs)
       })
-      # observe(
-      #   lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
-      #     output[[paste0("posteriorApproximationsOf", parameters[[input$specificModel]][[i]])]] <- renderPlot(
-      #       
-      #     )
-      #   })
-      # )
     }
   )
-  
-  # Downloading the generated trace file
-  output$downloadTraceFile <- downloadHandler(
-    filename = function() {
-      sprintf("%s.tsv", uniqueTraceFileName)
-    },
-    content = function(file) {
-      file.copy(sprintf("tmp/%s.tsv", uniqueTraceFileName), file)
-    }
-  )
-  
   # Deleting user trace files after the user ends their session
   session$onSessionEnded(function() {
     if (file.exists(sprintf("tmp/%s.tsv", uniqueTraceFileName))) {
       file.remove(sprintf("tmp/%s.tsv", uniqueTraceFileName))
     }
   })
-  
 }
 
 shinyApp(ui = ui, server = server)
