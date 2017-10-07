@@ -507,6 +507,26 @@ server <- function(input, output, session) {
         })
         do.call(tabsetPanel, tabs)
       })
+      observe(
+        lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+          output[[paste0("posteriorApproximationsOf", parameters[[input$specificModel]][[i]])]] <- renderPlot(
+            pal <- rainbow(n=6, start=0, end=0.5, v=1, s=1),
+            plot(density
+                 (trace[[parameters[[input$specificModel]][[i]]]][trace$n==1], weights=trace$weight[trace$n==1]), 
+                 col=pal[1], 
+                 lwd=2, 
+                 main=paste0(names(parameters[[input$specificModel]]), " ", names(parameters[[input$specificModel]][[i]])), 
+                 xlab=paste0(names(parameters[[input$specificModel]]), ' rate parameter (', names(parameters[[input$specificModel]][[i]]), ')'), 
+                 cex.lab=1.2
+            ),
+            lapply(seq_len(5), function(i) {
+              temp <- trace[trace$n==i*10,]
+              lines(density(temp[[parameters[[input$specificModel]][[i]]]], weights=temp$weight), col=pal[i+1], lwd=1.5)
+            }),
+            lines(density(trace[[parameters[[input$specificModel]][[i]]]][trace$n==max(trace$n)], weights=trace$weight[trace$n==max(trace$n)]), col='black', lwd=2) 
+          )
+        })
+      )
     }
   )
   # Deleting user trace files after the user ends their session
