@@ -486,7 +486,6 @@ server <- function(input, output, session) {
           output[[paste0("meanTrajectoryOf", parameters[[input$specificModel]][[i]])]] <- renderPlot(
             plot(
               sapply(split(trace[[parameters[[input$specificModel]][[i]]]]*trace$weight, trace$n), sum),
-              ylim=c(0, 2),
               type='o',
               xlab='Iteration',
               ylab=paste0('Mean', parameters[[input$specificModel]][[i]]),
@@ -519,15 +518,31 @@ server <- function(input, output, session) {
                  xlab=paste0(names(parameters[[input$specificModel]]), ' rate parameter (', names(parameters[[input$specificModel]][[i]]), ')'),
                  cex.lab=1.2
             )
-            # ,
-            # lapply(seq_len(5), function(i) {
-            #   temp <- trace[trace$n==i*10,]
-            #   lines(density(temp[[parameters[[input$specificModel]][[i]]]], weights=temp$weight), col=pal[i+1], lwd=1.5)
-            # }),
-            # lines(density(trace[[parameters[[input$specificModel]][[i]]]][trace$n==max(trace$n)], weights=trace$weight[trace$n==max(trace$n)]), col='black', lwd=2)
           )
-        })
+        }),
+        priority = 98
       )
+      # observe(
+      #   lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      #     pal = rainbow(n=6, start=0, end=0.5, v=1, s=1)
+      #     output[[paste0("posteriorApproximationsOf", parameters[[input$specificModel]][[i]])]] <- renderPlot(
+      #       for (i in 1:5) {
+      #         temp <- trace[trace$n==i*10,]
+      #         lines(density(temp[[parameters[[input$specificModel]][[i]]]], weights=temp$weight), col=pal[i+1], lwd=1.5)
+      #       }
+      #     )
+      #   }),
+      #   priority = 97
+      # )
+      # observe(
+      #   lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      #     pal = rainbow(n=6, start=0, end=0.5, v=1, s=1)
+      #     output[[paste0("posteriorApproximationsOf", parameters[[input$specificModel]][[i]])]] <- renderPlot(
+      #       lines(density(trace[[parameters[[input$specificModel]][[i]]]][trace$n==max(trace$n)], weights=trace$weight[trace$n==max(trace$n)]), col='black', lwd=2)
+      #     )
+      #   }),
+      #   priority = 96
+      # )
     }
   )
   # Deleting user trace files after the user ends their session
