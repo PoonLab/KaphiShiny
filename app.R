@@ -437,40 +437,23 @@ server <- function(input, output, session) {
       observe(
         lapply(seq_len(length(modelParameters)), function(i) {
           pal = rainbow(n=6, start=0, end=0.5, v=1, s=1)
-          output[[paste0("posteriorApproximationsOf", modelParameters[[i]])]] <- renderPlot(
-            plot(density
-                 (trace[[modelParameters[[i]]]][trace$n==1], weights=trace$weight[trace$n==1]),
-                 col=pal[1],
-                 lwd=2,
-                 main=paste0(input$specificModel, " ", modelParameters[[i]]),
-                 xlab=paste0(input$specificModel, ' rate parameter (', modelParameters[[i]], ')'),
-                 cex.lab=1.2
-            )
-          )
-        }),
-        priority = 98
-      )
-      
-      observe(
-        lapply(seq_len(length(modelParameters)), function(i) {
-          pal = rainbow(n=6, start=0, end=0.5, v=1, s=1)
-          output[[paste0("posteriorApproximationsOf", modelParameters[[i]])]] <- renderPlot(
+          output[[paste0("posteriorApproximationsOf", modelParameters[[i]])]] <- reactivePlot(function() {
+            plot.new()
+            plot.window(xlim=c(0, 3), ylim=c(0, 20))
+            axis(1)
+            axis(2)
+            title(main=paste0(input$specificModel, " ", modelParameters[[i]]))
+            title(xlab=paste0(input$specificModel, ' rate parameter (', modelParameters[[i]], ')'))
+            title(ylab="Density")
+            box()
+            lines(density(trace[[modelParameters[[i]]]][trace$n==1], weights=trace$weight[trace$n==1]))
             for (j in 1:5) {
               temp <- trace[trace$n==j*10,]
               lines(density(temp[[modelParameters[[i]]]], weights=temp$weight), col=pal[j+1], lwd=1.5)
             }
-          )
-        }),
-        priority = 97
-      )
-      
-      observe(
-        lapply(seq_len(length(modelParameters)), function(i) {
-          output[[paste0("posteriorApproximationsOf", modelParameters[[i]])]] <- renderPlot(
             lines(density(trace[[modelParameters[[i]]]][trace$n==max(trace$n)], weights=trace$weight[trace$n==max(trace$n)]), col='black', lwd=2)
-          )
-        }),
-        priority = 96
+          })
+        })
       )
       
     }
