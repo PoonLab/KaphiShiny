@@ -436,7 +436,9 @@ server <- function(input, output, session) {
       # Rendering posteriors approximations plots in separate tabs
       observe(
         lapply(seq_len(length(modelParameters)), function(i) {
-          pal = rainbow(n=6, start=0, end=0.5, v=1, s=1)
+          nIterations = length(unique(trace$n)) %/% 10
+          nColours = nIterations + 1
+          pal = rainbow(n=nColours, start=0, end=0.5, v=1, s=1)
           output[[paste0("posteriorApproximationsOf", modelParameters[[i]])]] <- reactivePlot(function() {
             plot.new()
             plot.window(xlim=c(0, 3), ylim=c(0, 20))
@@ -447,11 +449,15 @@ server <- function(input, output, session) {
             title(ylab="Density")
             box()
             lines(density(trace[[modelParameters[[i]]]][trace$n==1], weights=trace$weight[trace$n==1]))
-            for (j in 1:5) {
+            for (j in 1:nIterations) {
               temp <- trace[trace$n==j*10,]
               lines(density(temp[[modelParameters[[i]]]], weights=temp$weight), col=pal[j+1], lwd=1.5)
             }
             lines(density(trace[[modelParameters[[i]]]][trace$n==max(trace$n)], weights=trace$weight[trace$n==max(trace$n)]), col='black', lwd=2)
+            # Show the prior distribution
+            x <- sort( replicate(config$nparticle, eval(parse(text=config$priors[[modelParameters[[i]]]]))))
+            y <- function(x) {arg.prior <- x; eval(parse(text=config$prior.densities[[modelParameters[[i]]]]))}
+            lines(x, y(x), lty=5)
           })
         })
       )
