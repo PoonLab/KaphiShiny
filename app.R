@@ -455,7 +455,7 @@ server <- function(input, output, session) {
             }
             lines(density(trace[[modelParameters[[i]]]][trace$n==max(trace$n)], weights=trace$weight[trace$n==max(trace$n)]), col='black', lwd=2)
             # Show the prior distribution
-            x <- sort( replicate(config$nparticle, eval(parse(text=config$priors[[modelParameters[[i]]]]))))
+            x <- sort(replicate(1000, eval(parse(text=config$priors[[modelParameters[[i]]]]))))
             y <- function(x) {arg.prior <- x; eval(parse(text=config$prior.densities[[modelParameters[[i]]]]))}
             lines(x, y(x), lty=5)
           })
