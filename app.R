@@ -439,7 +439,7 @@ server <- function(input, output, session) {
           nIterations = length(unique(trace$n)) %/% 10
           nColours = nIterations + 1
           pal = rainbow(n=nColours, start=0, end=0.5, v=1, s=1)
-          output[[paste0("posteriorApproximationsOf", modelParameters[[i]])]] <- reactivePlot(function() {
+          output[[paste0("posteriorApproximationsOf", modelParameters[[i]])]] <- renderPlot({
             plot.new()
             plot.window(xlim=c(0, 3), ylim=c(0, 20))
             axis(1)
