@@ -387,11 +387,11 @@ server <- function(input, output, session) {
       # Initializing workspace
       ws <- init.workspace(obs.tree, config)
       
-      # Running ABC-SMC 
-      res <- run.smc(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel)
-      
-      # Examining the content of the trace file
-      trace <- read.table(sprintf("tmp/%s.tsv", uniqueTraceFileName), header=T, sep='\t')
+      # # Running ABC-SMC 
+      # res <- run.smc(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel)
+      # 
+      # # Examining the content of the trace file
+      # trace <- read.table(sprintf("tmp/%s.tsv", uniqueTraceFileName), header=T, sep='\t')
       
       # Rendering means trajectories tabs
       output$meansTrajectories <- renderUI({
@@ -405,21 +405,21 @@ server <- function(input, output, session) {
         do.call(tabsetPanel, tabs)
       })
       
-      # Rendering means trajectories plots in separate tabs
-      observe(
-        lapply(seq_len(length(modelParameters)), function(i) {
-          output[[paste0("meanTrajectoryOf", modelParameters[[i]])]] <- renderPlot(
-            plot(
-              sapply(split(trace[[modelParameters[[i]]]]*trace$weight, trace$n), sum),
-              type = 'o',
-              xlab='Iteration',
-              ylab=paste0('Mean ', modelParameters[[i]]),
-              cex.lab=1,
-              main=paste0('Trajectory of Mean ',  modelParameters[[i]], ' (',  input$specificModel, ' Model, ', input$particleNumber, ' Particles)')
-            )
-          )
-        })
-      )
+      # # Rendering means trajectories plots in separate tabs
+      # observe(
+      #   lapply(seq_len(length(modelParameters)), function(i) {
+      #     output[[paste0("meanTrajectoryOf", modelParameters[[i]])]] <- renderPlot(
+      #       plot(
+      #         sapply(split(trace[[modelParameters[[i]]]]*trace$weight, trace$n), sum),
+      #         type = 'o',
+      #         xlab='Iteration',
+      #         ylab=paste0('Mean ', modelParameters[[i]]),
+      #         cex.lab=1,
+      #         main=paste0('Trajectory of Mean ',  modelParameters[[i]], ' (',  input$specificModel, ' Model, ', input$particleNumber, ' Particles)')
+      #       )
+      #     )
+      #   })
+      # )
       
       # Rendering posteriors approximations tabs
       output$posteriorsApproximations <- renderUI({
@@ -433,34 +433,34 @@ server <- function(input, output, session) {
         do.call(tabsetPanel, tabs)
       })
       
-      # Rendering posteriors approximations plots in separate tabs
-      observe(
-        lapply(seq_len(length(modelParameters)), function(i) {
-          nIterations = length(unique(trace$n)) %/% 10
-          nColours = nIterations + 1
-          pal = rainbow(n=nColours, start=0, end=0.5, v=1, s=1)
-          output[[paste0("posteriorApproximationsOf", modelParameters[[i]])]] <- renderPlot({
-            plot.new()
-            plot.window(xlim=c(0, 3), ylim=c(0, 20))
-            axis(1)
-            axis(2)
-            title(main=paste0(input$specificModel, " ", modelParameters[[i]]))
-            title(xlab=paste0(input$specificModel, ' rate parameter (', modelParameters[[i]], ')'))
-            title(ylab="Density")
-            box()
-            lines(density(trace[[modelParameters[[i]]]][trace$n==1], weights=trace$weight[trace$n==1]))
-            for (j in 1:nIterations) {
-              temp <- trace[trace$n==j*10,]
-              lines(density(temp[[modelParameters[[i]]]], weights=temp$weight), col=pal[j+1], lwd=1.5)
-            }
-            lines(density(trace[[modelParameters[[i]]]][trace$n==max(trace$n)], weights=trace$weight[trace$n==max(trace$n)]), col='black', lwd=2)
-            # Show the prior distribution
-            x <- sort(replicate(1000, eval(parse(text=config$priors[[modelParameters[[i]]]]))))
-            y <- function(x) {arg.prior <- x; eval(parse(text=config$prior.densities[[modelParameters[[i]]]]))}
-            lines(x, y(x), lty=5)
-          })
-        })
-      )
+      # # Rendering posteriors approximations plots in separate tabs
+      # observe(
+      #   lapply(seq_len(length(modelParameters)), function(i) {
+      #     nIterations = length(unique(trace$n)) %/% 10
+      #     nColours = nIterations + 1
+      #     pal = rainbow(n=nColours, start=0, end=0.5, v=1, s=1)
+      #     output[[paste0("posteriorApproximationsOf", modelParameters[[i]])]] <- renderPlot({
+      #       plot.new()
+      #       plot.window(xlim=c(0, 3), ylim=c(0, 20))
+      #       axis(1)
+      #       axis(2)
+      #       title(main=paste0(input$specificModel, " ", modelParameters[[i]]))
+      #       title(xlab=paste0(input$specificModel, ' rate parameter (', modelParameters[[i]], ')'))
+      #       title(ylab="Density")
+      #       box()
+      #       lines(density(trace[[modelParameters[[i]]]][trace$n==1], weights=trace$weight[trace$n==1]))
+      #       for (j in 1:nIterations) {
+      #         temp <- trace[trace$n==j*10,]
+      #         lines(density(temp[[modelParameters[[i]]]], weights=temp$weight), col=pal[j+1], lwd=1.5)
+      #       }
+      #       lines(density(trace[[modelParameters[[i]]]][trace$n==max(trace$n)], weights=trace$weight[trace$n==max(trace$n)]), col='black', lwd=2)
+      #       # Show the prior distribution
+      #       x <- sort(replicate(1000, eval(parse(text=config$priors[[modelParameters[[i]]]]))))
+      #       y <- function(x) {arg.prior <- x; eval(parse(text=config$prior.densities[[modelParameters[[i]]]]))}
+      #       lines(x, y(x), lty=5)
+      #     })
+      #   })
+      # )
       
     }
   )
