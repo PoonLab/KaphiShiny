@@ -29,24 +29,36 @@ parameters <- list(
     "Ne.tau"
   ),
   sir.dynamic = list(
-    "beta",
-    "gamma",
-    "mu"
-  ),
-  sir.nondynamic = list(
-    "beta",
-    "gamma"
-  ),
-  seir= list(
+    "t.end",
+    "N",
     "beta",
     "gamma",
     "mu", 
-    "alpha" 
+    "alpha"
   ),
-  sis = list(
+  sir.nondynamic = list(
+    "t.end",
+    "N",
     "beta",
     "gamma",
-    "mu"
+    "mu", 
+    "alpha"
+  ),
+  seir= list(
+    "t.end",
+    "N",
+    "beta",
+    "gamma",
+    "mu", 
+    "alpha"
+  ),
+  sis = list(
+    "t.end",
+    "N",
+    "beta",
+    "gamma",
+    "mu", 
+    "alpha"
   ),
   yule = list(
     "lambda"
