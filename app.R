@@ -404,7 +404,7 @@ server <- function(input, output, session) {
       ws <- init.workspace(obs.tree, config)
       
       # Running ABC-SMC 
-      res <- run.smc(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel)
+      res <- run.smc(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel, nthreads = 10)
       
       # Examining the content of the trace file
       trace <- read.table(sprintf("tmp/%s.tsv", uniqueTraceFileName), header=T, sep='\t')
