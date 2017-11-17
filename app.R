@@ -188,6 +188,7 @@ server <- function(input, output, session) {
     input$processFile,
     {
       inFile <- input$newickFile
+      req(inFile$datapath)
       newickInput$data <- read.tree(inFile$datapath)
     }
   )
