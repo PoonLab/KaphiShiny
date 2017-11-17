@@ -330,6 +330,15 @@ server <- function(input, output, session) {
       # Setting config class
       class(config) <- "smc.config"
       
+      # Requiring SMC settings inputs for populating the config
+      req(input$particleNumber)
+      req(input$sampleNumber)
+      req(input$ESSTolerance)
+      req(input$finalEpsilon)
+      req(input$finalAcceptanceRate)
+      req(input$quality)
+      req(input$stepTolerance)
+      
       # Populating config with SMC settings
       config$nparticle <- input$particleNumber
       config$nsample <- input$sampleNumber
@@ -345,6 +354,12 @@ server <- function(input, output, session) {
         parameter <- toString(modelParameters[[i]])
         priorDistribution <- paste0(input$specificModel, "Prior", modelParameters[[i]], "Distribution")
         proposalDistribution <- paste0(input$specificModel, "Proposal", modelParameters[[i]], "Distribution")
+        # Requiring data needed to populate the config
+        req(parameter)
+        req(input[[priorDistribution]])
+        req(input[[proposalDistribution]])
+        req(distribution.parameters(input[[priorDistribution]], priorDistribution))
+        req(distribution.parameters(input[[proposalDistribution]], proposalDistribution))
         config$params[[i]] <- parameter
         config$priors[[parameter]] <- paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
         config$prior.densities[[parameter]] <- paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
