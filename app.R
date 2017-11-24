@@ -318,14 +318,14 @@ server <- function(input, output, session) {
     return(paste0(distributionParameters, collapse = ","))
   }
   
-  # Initializing variables needed when running Kaphi
-  uniqueTraceFileName <- Sys.time()
-  trace <- reactiveValues()
-  
   # Running Kaphi
   observeEvent(
     input$runKaphi,
     {
+      
+      # Initializing variables needed when running Kaphi
+      uniqueTraceFileName <- Sys.time()
+      trace <- reactiveValues()
       
       # Setting config class
       class(config) <- "smc.config"
@@ -480,13 +480,6 @@ server <- function(input, output, session) {
       
     }
   )
-  
-  # Deleting user trace files after the user ends their session
-  session$onSessionEnded(function() {
-    if (file.exists(sprintf("tmp/%s.tsv", uniqueTraceFileName))) {
-      file.remove(sprintf("tmp/%s.tsv", uniqueTraceFileName))
-    }
-  })
   
 }
 
