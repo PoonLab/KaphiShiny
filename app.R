@@ -456,15 +456,14 @@ server <- function(input, output, session) {
           nColours = nIterations + 1
           pal = rainbow(n=nColours, start=0, end=0.5, v=1, s=1)
           output[[paste0("posteriorApproximationsOf", modelParameters[[i]])]] <- renderPlot({
-            plot.new()
-            plot.window(xlim=c(0, 3), ylim=c(0, 20))
-            axis(1)
-            axis(2)
-            title(main=paste0(input$specificModel, " ", modelParameters[[i]]))
-            title(xlab=paste0(input$specificModel, ' rate parameter (', modelParameters[[i]], ')'))
-            title(ylab="Density")
-            box()
-            lines(density(trace[[modelParameters[[i]]]][trace$n==1], weights=trace$weight[trace$n==1]))
+            plot(density(trace[[modelParameters[[i]]]][trace$n==1], 
+                 weights=trace$weight[trace$n==1]),
+                 col=pal[1], 
+                 lwd=2, 
+                 main=paste0(input$specificModel, " ", modelParameters[[i]]), 
+                 xlab=paste0(input$specificModel, ' rate parameter (', modelParameters[[i]], ')'), 
+                 cex.lab=0.8
+                 )
             for (j in 1:nIterations) {
               temp <- trace[trace$n==j*10,]
               lines(density(temp[[modelParameters[[i]]]], weights=temp$weight), col=pal[j+1], lwd=1.5)
