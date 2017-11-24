@@ -509,10 +509,20 @@ server <- function(input, output, session) {
   uniqueTraceFileName <- Sys.time()
   trace <- reactiveValues()
   
+  READY <- FALSE
+  
   # Running Kaphi
   observeEvent(
     input$runKaphi,
     {
+      READY <- TRUE
+    }
+  )
+  
+  observe({
+    
+    if (READY == TRUE){
+    
       # Populating config with SMC settings
       config$nparticle <- input$particleNumber
       config$nsample <- input$sampleNumber
@@ -596,8 +606,11 @@ server <- function(input, output, session) {
       })
       
       res <- run.smc.shiny(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel, modelsList = models, parametersList = parameters, distributionsList = distributions)
+      
     }
-  )
+    
+    READY <- FALSE
+  })
   
   # Deleting user trace files after the user ends their session
   session$onSessionEnded(function() {
