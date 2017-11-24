@@ -173,7 +173,9 @@ server <- function(input, output, session) {
     rbf.variance=100.0,
     sst.control=1.0,
     norm.mode='NONE'
-  ) 
+  )
+  # Setting config class
+  class(config) <- "smc.config"
   
   # Reading tree from newick string
   observeEvent(
@@ -325,10 +327,6 @@ server <- function(input, output, session) {
   observeEvent(
     input$runKaphi,
     {
-      
-      # Setting config class
-      class(config) <- "smc.config"
-      
       # Populating config with SMC settings
       config$nparticle <- input$particleNumber
       config$nsample <- input$sampleNumber
@@ -354,7 +352,7 @@ server <- function(input, output, session) {
       # Setting config model
       config <- set.model(config, input$specificModel)
       
-      # Plotting prior distributions (heavily inspired by plot.smc.config)
+      # Plotting prior distributions (derived from plot.smc.config)
       y <- rbind(sapply(1:1000, function(x) sample.priors(config)))
       if (nrow(y) == 1){
         rownames(y)[1] <- names(config$priors)
@@ -411,7 +409,9 @@ server <- function(input, output, session) {
         do.call(tabsetPanel, tabs)
       })
       
-      run.smc.shiny <- function(ws, trace.file='', regex=NA, seed=NA, nthreads=1, verbose=FALSE, model='', shiny=FALSE, modelsList = list(), parametersList = list(), distributionsList = list(), ...) {
+      
+      ## SHINY function derived from run.smc in Kaphi
+      run.smc.shiny <- function(ws, trace.file='', regex=NA, seed=NA, nthreads=1, verbose=FALSE, model='', modelsList = list(), parametersList = list(), distributionsList = list(), ...) {
         # @param ws: workspace
         # @param obs.tree: object of class 'phylo'
         # @param trace.file: (optional) path to a file to write outputs
@@ -427,15 +427,15 @@ server <- function(input, output, session) {
           'n', 'part.num', 'weight', config$params, paste0('dist.', 1:config$nsample)
         )), file=trace.file, sep='\t', quote=FALSE, row.names=FALSE, col.names=FALSE)
         
-        if (shiny == TRUE) {                                                                                                   # SHINY data frame to be populated
-          shiny.df <- data.frame(n=numeric(), 
-                                 part.num=numeric(), 
-                                 weight=numeric(), 
-                                 sapply(config$params, function(x) {x=numeric()}), 
-                                 sapply(sapply(1:config$nsample, function(y) {paste0('dist.', y)}), function(z) {z=numeric()}))
-          ind <- 1
-        }
         
+        ## SHINY data frame to be populated                                                                                                
+        shiny.df <- data.frame(n=numeric(), 
+                               part.num=numeric(), 
+                               weight=numeric(), 
+                               sapply(config$params, function(x) {x=numeric()}), 
+                               sapply(sapply(1:config$nsample, function(y) {paste0('dist.', y)}), function(z) {z=numeric()}))
+        ind <- 1    # keeps track of row in shiny,df to add to
+      
         # space for returned values
         result <- list(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={})
         
@@ -491,10 +491,10 @@ server <- function(input, output, session) {
               row.names=FALSE,
               col.names=FALSE
             )
-            if (shiny == TRUE) {                                                                                           # SHINY data frame being populated
-              shiny.df[ind,] <- c(round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5))
-              ind <- ind + 1
-            }
+            
+            ## SHINY data frame being populated
+            shiny.df[ind,] <- t(c(round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5)))
+            ind <- ind + 1
           }
           
           # report stopping conditions
@@ -506,48 +506,65 @@ server <- function(input, output, session) {
             cat ("config$final.accept.rate: ", config$final.accept.rate, "\n");
           }
           
-          modelParameters = parametersList[[model]]
-          if (shiny == TRUE) {
-            lapply(seq_len(length(modelParameters)), function(i) {
-              output[[paste0("meanTrajectoryOf", modelParameters[[i]])]] <- renderPlot(
+          
+          ## SHINY function for param trajectories and updated distributions --> update delay of ten iterations
+          userParams = parametersList[[model]]
+          if (niter %% 10 == 0) {
+            lapply(seq_len(length(userParams)), function(i) {
+              
+              # param trajectory
+              output[[paste0("meanTrajectoryOf", userParams[[i]])]] <- renderPlot(
                 plot(
-                  sapply(split(shiny.df[[modelParameters[[i]]]]*shiny.df$weight, shiny.df$n), sum),
+                  sapply(split(shiny.df[[userParams[[i]]]]*shiny.df$weight, shiny.df$n), sum),
                   type = 'o',
                   xlab='Iteration',
-                  ylab=paste0('Mean ', modelParameters[[i]]),
+                  ylab=paste0('Mean ', userParams[[i]]),
                   cex.lab=1,
-                  main=paste0('Trajectory of Mean ',  modelParameters[[i]], ' (',  input$specificModel, ' Model, ', input$particleNumber, ' Particles)')
+                  main=paste0('Trajectory of Mean ',  userParams[[i]], ' (',  input$specificModel, ' Model, ', input$particleNumber, ' Particles)')
                 )
               )
-            })                                                                                    # SHINY function for param trajectories
-            if (niter %/% 10 == 0) {
-              lapply(seq_len(length(modelParameters)), function(i) {
-                nIterations = length(unique(shiny.df$n)) %/% 10
-                nColours = nIterations + 1
-                pal = rainbow(n=nColours, start=0, end=0.5, v=1, s=1)
-                output[[paste0("posteriorApproximationsOf", modelParameters[[i]])]] <- renderPlot({
-                  plot.new()
-                  plot.window(xlim=c(0, 3), ylim=c(0, 20))
-                  axis(1)
-                  axis(2)
-                  title(main=paste0(input$specificModel, " ", modelParameters[[i]]))
-                  title(xlab=paste0(input$specificModel, ' rate parameter (', modelParameters[[i]], ')'))
-                  title(ylab="Density")
-                  box()
-                  lines(density(shiny.df[[modelParameters[[i]]]][shiny.df$n==1], weights=shiny.df$weight[shiny.df$n==1]))
-                  for (j in 1:nIterations) {
-                    temp <- shiny.df[shiny.df$n==j*10,]
-                    lines(density(temp[[modelParameters[[i]]]], weights=temp$weight), col=pal[j+1], lwd=1.5)
-                  }
-                  lines(density(shiny.df[[modelParameters[[i]]]][shiny.df$n==max(shiny.df$n)], weights=shiny.df$weight[shiny.df$n==max(shiny.df$n)]), col='black', lwd=2)
-                  # Show the prior distribution
-                  x <- sort(replicate(1000, eval(parse(text=config$priors[[modelParameters[[i]]]]))))
-                  y <- function(x) {arg.prior <- x; eval(parse(text=config$prior.densities[[modelParameters[[i]]]]))}
-                  lines(x, y(x), lty=5)
-                })
-              })                                                                                # SHINY function for updated distributions
-            }
+              
+              # use denistiies to visualize posterior approximations
+              nIterations = length(unique(shiny.df$n)) %/% 10
+              nColours = nIterations + 1
+              pal = rainbow(n=nColours, start=0, end=0.5, v=1, s=1)
+              output[[paste0("posteriorApproximationsOf", userParams[[i]])]] <- renderPlot({
+                plot(density
+                     (shiny.df[[userParams[[i]]]][shiny.df$n==1], 
+                       weights=shiny.df$weight[shiny.df$n==1]), 
+                     col=pal[1], 
+                     lwd=2, 
+                     main=paste0('SIR ', config$priors[[param]]), 
+                     xlab=paste0('SIR rate parameter (', param, ')',
+                                 '\nMean: ',
+                                 mean(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)]), 
+                                 '    Median: ', 
+                                 median(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)]),
+                                 '\n95% CI (',
+                                 quantile(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)], c(0.025, 0.975))[1],
+                                 ' , ',
+                                 quantile(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)], c(0.025, 0.975))[2],
+                                 ')'), 
+                     cex.lab=0.8
+                )
+                
+                for (j in 1:nIterations) {
+                  temp <- shiny.df[shiny.df$n==j*10,]
+                  lines(density(temp[[userParams[[i]]]], weights=temp$weight), col=pal[j+1], lwd=1.5)
+                }
+                lines(density
+                      (shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)], 
+                        weights=shiny.df$weight[shiny.df$n==max(shiny.df$n)]), 
+                      col='black', 
+                      lwd=2)
+                # Show the prior distribution
+                x <- sort(replicate(1000, eval(parse(text=config$priors[[userParams[[i]]]]))))
+                y <- function(x) {arg.prior <- x; eval(parse(text=config$prior.densities[[userParams[[i]]]]))}
+                lines(x, y(x), lty=5)
+              })
+            })                                                                                
           }
+        
           
           # if acceptance rate is low enough, we're done
           if (result$accept.rate[niter] <= config$final.accept.rate) {
@@ -574,12 +591,10 @@ server <- function(input, output, session) {
         }  
         # pack ws and result into one list to be returned
         ret <- list(workspace=ws, result=result)
-        
         return (ret)
-      }
+      }    # end of modified function
       
-      res <- run.smc.shiny(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel, shiny=TRUE, modelsList = models, parametersList = parameters, distributionsList = distributions)
-
+      res <- run.smc.shiny(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel, modelsList = models, parametersList = parameters, distributionsList = distributions)
     }
   )
   
