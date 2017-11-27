@@ -101,6 +101,7 @@ ui <- fluidPage(
                 uiOutput("proposalsTabs")
               )
             ),
+            actionButton(inputId = "initializeWS", label = "Initialize Workspace"),
             actionButton(inputId = "runKaphi", label = "Run Kaphi")
           )
         ),
@@ -319,210 +320,12 @@ server <- function(input, output, session) {
     return(paste0(distributionParameters, collapse = ","))
   }
   
-  ## SHINY function derived from run.smc in Kaphi
-  run.smc.shiny <- function(ws, trace.file='', regex=NA, seed=NA, nthreads=1, verbose=FALSE, model='', modelsList = list(), parametersList = list(), distributionsList = list(), ...) {
-    # @param ws: workspace
-    # @param obs.tree: object of class 'phylo'
-    # @param trace.file: (optional) path to a file to write outputs
-    # @param seed: (optional) integer to set random seed
-    # @param nthreads: (optional) for running on multiple cores
-    # @param ...: additional arguments to pass to config@generator via
-    #   simulate.trees()
-    
-    config <- ws$config
-    
-    # clear file and write header row
-    write.table(t(c(
-      'n', 'part.num', 'weight', config$params, paste0('dist.', 1:config$nsample)
-    )), file=trace.file, sep='\t', quote=FALSE, row.names=FALSE, col.names=FALSE)
-    
-    
-    ## SHINY data frame to be populated                                                                                                
-    shiny.df <- data.frame(n=numeric(), 
-                           part.num=numeric(), 
-                           weight=numeric(), 
-                           sapply(config$params, function(x) {x=numeric()}), 
-                           sapply(sapply(1:config$nsample, function(y) {paste0('dist.', y)}), function(z) {z=numeric()}))
-    ind <- 1    # keeps track of row in shiny,df to add to
-    
-    # space for returned values
-    result <- list(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={})
-    
-    # draw particles from prior distribution, assign weights and simulate data
-    ptm <- proc.time()  # start timer
-    cat ("Initializing SMC-ABC run with", config$nparticle, "particles\n")
-    ws <- initialize.smc(ws, model, seed=seed, ...)
-    
-    niter <- 0
-    ws$epsilon <- .Machine$double.xmax
-    
-    # report stopping conditions
-    if (verbose) {
-      cat ("ws$epsilon: ", ws$epsilon, "\n");
-      cat ("config$final.epsilon: ", config$final.epsilon, "\n");
-    }
-    
-    while (ws$epsilon != config$final.epsilon) {
-      niter <- niter + 1
-      
-      # update epsilon
-      ws <- .next.epsilon(ws)
-      
-      # provide some feedback
-      lap <- proc.time() - ptm
-      cat ("Step ", niter, " epsilon:", ws$epsilon, " ESS:", .ess(ws$weights),
-           "accept:", result$accept.rate[length(result$accept.rate)],
-           "elapsed:", round(lap[['elapsed']],1), "s\n")
-      
-      # resample particles according to their weights
-      if (.ess(ws$weights) < config$ess.tolerance) {
-        ws <- .resample.particles(ws)
-      }
-      
-      # perturb particles
-      ws$accept <- vector()    # vector to keep track of which particles were accepted through parallelization in .perturb.particles
-      ws$alive <- 0
-      ws <- .perturb.particles(ws, model, n.threads=nthreads)  # Metropolis-Hastings sampling
-      
-      # record everything
-      result$theta[[niter]] <- ws$particles
-      result$weights[[niter]] <- ws$weights
-      result$epsilons <- c(result$epsilons, ws$epsilon)
-      result$accept.rate <- c(result$accept.rate, ws$accepted / ws$alive)      # changed ws$accept to ws$accepted; didn't want dual behaviour of ws$accept switching back and forth between vector and int
-      
-      # write output to file if specified
-      for (i in 1:config$nparticle) {
-        write.table(
-          x=t(c(niter, i, round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5))),
-          file=trace.file,
-          append=TRUE,
-          sep="\t",
-          row.names=FALSE,
-          col.names=FALSE
-        )
-        
-        ## SHINY data frame being populated
-        shiny.df[ind,] <- t(c(niter, i, round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5)))
-        ind <- ind + 1
-      }
-      
-      # report stopping conditions
-      if (verbose) {
-        cat("run.smc niter: ", niter, "\n")
-        cat ("ws$epsilon: ", ws$epsilon, "\n");
-        cat ("config$final.epsilon: ", config$final.epsilon, "\n");
-        cat ("result$accept.rate: ", result$accept.rate, "\n");
-        cat ("config$final.accept.rate: ", config$final.accept.rate, "\n");
-      }
-      
-      
-      ## SHINY function for param trajectories and updated distributions --> update delay of ten iterations
-      userParams = parametersList[[model]]
-      if (niter %% 10 == 0) {
-        observe(
-        lapply(seq_len(length(userParams)), function(i) {
-          
-          # param trajectory
-          output[[paste0("meanTrajectoryOf", userParams[[i]])]] <- renderPlot(
-            plot(
-              sapply(split(shiny.df[[userParams[[i]]]]*shiny.df$weight, shiny.df$n), sum),
-              type = 'o',
-              xlab='Iteration',
-              ylab=paste0('Mean ', userParams[[i]]),
-              cex.lab=1,
-              main=paste0('Trajectory of Mean ',  userParams[[i]], ' (',  input$specificModel, ' Model, ', input$particleNumber, ' Particles)')
-            )
-          )
-          
-          # use denistiies to visualize posterior approximations
-          nIterations = length(unique(shiny.df$n)) %/% 10
-          nColours = nIterations + 1
-          pal = rainbow(n=nColours, start=0, end=0.5, v=1, s=1)
-          output[[paste0("posteriorApproximationsOf", userParams[[i]])]] <- renderPlot({
-            plot(density
-                 (shiny.df[[userParams[[i]]]][shiny.df$n==1], 
-                   weights=shiny.df$weight[shiny.df$n==1]), 
-                 col=pal[1], 
-                 lwd=2, 
-                 main=paste0('SIR ', config$priors[[userParams[[i]]]]), 
-                 xlab=paste0('SIR rate parameter (', userParams[[i]], ')',
-                             '\nMean: ',
-                             mean(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)]), 
-                             '    Median: ', 
-                             median(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)]),
-                             '\n95% CI (',
-                             quantile(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)], c(0.025, 0.975))[1],
-                             ' , ',
-                             quantile(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)], c(0.025, 0.975))[2],
-                             ')'), 
-                 cex.lab=0.8
-            )
-            
-            for (j in 1:nIterations) {
-              temp <- shiny.df[shiny.df$n==j*10,]
-              lines(density(temp[[userParams[[i]]]], weights=temp$weight), col=pal[j+1], lwd=1.5)
-            }
-            lines(density
-                  (shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)], 
-                    weights=shiny.df$weight[shiny.df$n==max(shiny.df$n)]), 
-                  col='black', 
-                  lwd=2)
-            # Show the prior distribution
-            x <- sort(replicate(1000, eval(parse(text=config$priors[[userParams[[i]]]]))))
-            y <- function(x) {arg.prior <- x; eval(parse(text=config$prior.densities[[userParams[[i]]]]))}
-            lines(x, y(x), lty=5)
-          })
-        })
-        )                                                                                
-      }
-      
-      
-      # if acceptance rate is low enough, we're done
-      if (result$accept.rate[niter] <= config$final.accept.rate) {
-        ws$epsilon <- config$final.epsilon
-        break  # FIXME: this should be redundant given loop condition above
-      }
-    }
-    
-    # finally sample from the estimated posterior distribution
-    ws <- .resample.particles(ws)
-    result$theta[[niter]] <- ws$particles
-    result$weights[[niter]] <- ws$weights
-    result$niter <- niter
-    
-    for (i in 1:config$nparticle) {
-      write.table(
-        x=t(c((niter + 1), i, round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5))),
-        file=trace.file,
-        append=TRUE,
-        sep="\t",
-        row.names=FALSE,
-        col.names=FALSE
-      )
-    }  
-    # pack ws and result into one list to be returned
-    ret <- list(workspace=ws, result=result)
-    return (ret)
-  }    # end of modified function
   
-  # Initializing variables needed when running Kaphi
-  uniqueTraceFileName <- Sys.time()
-  trace <- reactiveValues()
-  
-  READY <- FALSE
   
   # Running Kaphi
   observeEvent(
-    input$runKaphi,
+    input$initializeWS,
     {
-      READY <- TRUE
-    }
-  )
-  
-  observe({
-    
-    if (READY == TRUE){
-    
       # Populating config with SMC settings
       config$nparticle <- input$particleNumber
       config$nsample <- input$sampleNumber
@@ -573,14 +376,6 @@ server <- function(input, output, session) {
         })
       )
       
-      # Loading tree input
-      if (is.null(newickInput$data)) return()
-      obs.tree <- newickInput$data
-      obs.tree <- parse.input.tree(obs.tree, config)
-      
-      # Initializing workspace
-      ws <- init.workspace(obs.tree, config)
-      
       # Rendering means trajectories tabs
       output$meansTrajectories <- renderUI({
         nTabs = length(modelParameters)
@@ -604,13 +399,236 @@ server <- function(input, output, session) {
         })
         do.call(tabsetPanel, tabs)
       })
-      
-      res <- run.smc.shiny(ws, trace.file = sprintf("tmp/%s.tsv", uniqueTraceFileName), model=input$specificModel, modelsList = models, parametersList = parameters, distributionsList = distributions)
-      
+
     }
+  )
+  
+  
+  
+  
+  ## SHINY function derived from run.smc in Kaphi
+  run.smc.shiny <- function(ws, trace.file='', regex=NA, seed=NA, nthreads=1, verbose=FALSE, model='', modelsList = list(), parametersList = list(), distributionsList = list(), ...) {
     
-    READY <- FALSE
+  }    # end of modified function
+  
+  
+  # Initializing variables needed when running Kaphi
+  uniqueTraceFileName <- Sys.time()
+  trace <- reactiveValues()
+  
+  
+  
+  ## create reactiveValues objects where we can track the elements in shiny.df and results
+  result <- reactiveValues(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={})
+  
+  observeEvent(
+    input$runKaphi,
+    {
+      # this is a repeat of initializeWS actionButton evaluation
+      config$nparticle <- input$particleNumber
+      config$nsample <- input$sampleNumber
+      config$ess.tolerance <- input$ESSTolerance
+      config$final.epsilon <- input$finalEpsilon
+      config$final.accept.rate <- input$finalAcceptanceRate
+      config$quality <- input$quality
+      config$step.tolerance <- input$stepTolerance
+      
+      # Populating config with priors and proposals
+      modelParameters = parameters[[input$specificModel]]
+      for(i in seq_len(length(modelParameters))) {
+        parameter <- toString(modelParameters[[i]])
+        priorDistribution <- paste0(input$specificModel, "Prior", modelParameters[[i]], "Distribution")
+        proposalDistribution <- paste0(input$specificModel, "Proposal", modelParameters[[i]], "Distribution")
+        config$params[[i]] <- parameter
+        config$priors[[parameter]] <- paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
+        config$prior.densities[[parameter]] <- paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
+        config$proposals[[parameter]] <- paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
+        config$proposal.densities[[parameter]] <- paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
+      }
+      
+      # Setting config model
+      config <- set.model(config, input$specificModel)
+      
+      # Loading tree input
+      if (is.null(newickInput$data)) return()
+      obs.tree <- newickInput$data
+      obs.tree <- parse.input.tree(obs.tree, config)
+      
+      # Initializing workspace
+      ws <- init.workspace(obs.tree, config)
+      trace.file <- sprintf("tmp/%s.tsv", uniqueTraceFileName)
+      model <- input$specificModel
+      nthreads <- 1
+      verbose <- TRUE
+      
+      config <- ws$config
+      
+      # clear file and write header row
+      write.table(t(c(
+        'n', 'part.num', 'weight', config$params, paste0('dist.', 1:config$nsample)
+      )), file=trace.file, sep='\t', quote=FALSE, row.names=FALSE, col.names=FALSE)
+      
+      
+      ## create reactiveValues objects where we can track the elements in shiny.df and results
+      #result <- reactiveValues(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={})
+      shiny.df <- data.frame(n=numeric(), 
+                            part.num=numeric(), 
+                            weight=numeric(), 
+                            sapply(config$params, function(x) {x=numeric()}), 
+                            sapply(sapply(1:config$nsample, function(y) {paste0('dist.', y)}), function(z) {z=numeric()}))
+      #ind <- 1 
+      
+      
+      # draw particles from prior distribution, assign weights and simulate data
+      ptm <- proc.time()  # start timer
+      cat ("Initializing SMC-ABC run with", config$nparticle, "particles\n")
+      ws <- initialize.smc(ws, input$specificModel)
+      
+      #niter <- 0
+      ws$epsilon <- .Machine$double.xmax
+      
+      observe({
+        isolate({
+          # this is where we do the expensive computing
+          for (iteration in 1:10) {
+            
+            niter <- result$niter + 1
+            result$niter <- niter
+            
+            # update epsilon
+            ws <- .next.epsilon(ws)
+            
+            # provide some feedback
+            lap <- proc.time() - ptm
+            cat ("Step ", niter, " epsilon:", ws$epsilon, " ESS:", .ess(ws$weights),
+                 "accept:", result$accept.rate[length(result$accept.rate)],
+                 "elapsed:", round(lap[['elapsed']],1), "s\n")
+            
+            # resample particles according to their weights
+            if (.ess(ws$weights) < config$ess.tolerance) {
+              ws <- .resample.particles(ws)
+            }
+            
+            # perturb particles
+            ws$accept <- vector()    # vector to keep track of which particles were accepted through parallelization in .perturb.particles
+            ws$alive <- 0
+            ws <- .perturb.particles(ws, model, n.threads=nthreads)  # Metropolis-Hastings sampling
+            
+            # record everything
+            result$theta[[niter]] <- ws$particles
+            result$weights[[niter]] <- ws$weights
+            result$epsilons <- c(result$epsilons, ws$epsilon)
+            result$accept.rate <- c(result$accept.rate, ws$accepted / ws$alive)      # changed ws$accept to ws$accepted; didn't want dual behaviour of ws$accept switching back and forth between vector and int
+            
+            # write output to file if specified
+            for (i in 1:config$nparticle) {
+              write.table(
+                x=t(c(niter, i, round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5))),
+                file=trace.file,
+                append=TRUE,
+                sep="\t",
+                row.names=FALSE,
+                col.names=FALSE
+              )
+              
+              ## SHINY data frame being populated
+              shiny.df[ind,] <- t(c(niter, i, round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5)))
+              ind <- ind + 1
+            }
+            
+            # report stopping conditions
+            if (verbose) {
+              cat("run.smc niter: ", niter, "\n")
+              cat ("ws$epsilon: ", ws$epsilon, "\n");
+              cat ("config$final.epsilon: ", config$final.epsilon, "\n");
+              cat ("result$accept.rate: ", result$accept.rate, "\n");
+              cat ("config$final.accept.rate: ", config$final.accept.rate, "\n");
+            }
+            
+            ## SHINY function for param trajectories and updated distributions --> update delay of ten iterations
+            userParams = parameters[[model]]
+            if (iteration %% 10 == 0) {
+              observe(
+                lapply(seq_len(length(userParams)), function(i) {
+                  
+                  # param trajectory
+                  output[[paste0("meanTrajectoryOf", userParams[[i]])]] <- renderPlot(
+                    plot(
+                      sapply(split(shiny.df[[userParams[[i]]]]*shiny.df$weight, shiny.df$n), sum),
+                      type = 'o',
+                      xlab='Iteration',
+                      ylab=paste0('Mean ', userParams[[i]]),
+                      cex.lab=1,
+                      main=paste0('Trajectory of Mean ',  userParams[[i]], ' (',  input$specificModel, ' Model, ', input$particleNumber, ' Particles)')
+                    )
+                  )
+                  
+                  # use denistiies to visualize posterior approximations
+                  nIterations = length(unique(shiny.df$n)) %/% 10
+                  nColours = nIterations + 1
+                  pal = rainbow(n=nColours, start=0, end=0.5, v=1, s=1)
+                  output[[paste0("posteriorApproximationsOf", userParams[[i]])]] <- renderPlot({
+                    plot(density
+                         (shiny.df[[userParams[[i]]]][shiny.df$n==1], 
+                           weights=shiny.df$weight[shiny.df$n==1]), 
+                         col=pal[1], 
+                         lwd=2, 
+                         main=paste0('SIR ', config$priors[[userParams[[i]]]]), 
+                         xlab=paste0('SIR rate parameter (', userParams[[i]], ')',
+                                     '\nMean: ',
+                                     mean(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)]), 
+                                     '    Median: ', 
+                                     median(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)]),
+                                     '\n95% CI (',
+                                     quantile(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)], c(0.025, 0.975))[1],
+                                     ' , ',
+                                     quantile(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)], c(0.025, 0.975))[2],
+                                     ')'), 
+                         cex.lab=0.8
+                    )
+                    
+                    for (j in 1:nIterations) {
+                      temp <- shiny.df[shiny.df$n==j*10,]
+                      lines(density(temp[[userParams[[i]]]], weights=temp$weight), col=pal[j+1], lwd=1.5)
+                    }
+                    lines(density
+                          (shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)], 
+                            weights=shiny.df$weight[shiny.df$n==max(shiny.df$n)]), 
+                          col='black', 
+                          lwd=2)
+                    # Show the prior distribution
+                    x <- sort(replicate(1000, eval(parse(text=config$priors[[userParams[[i]]]]))))
+                    y <- function(x) {arg.prior <- x; eval(parse(text=config$prior.densities[[userParams[[i]]]]))}
+                    lines(x, y(x), lty=5)
+                  })
+                })
+              )                                                                                
+            }
+            
+            
+            # if acceptance rate is low enough, we're done
+            if (result$accept.rate[niter] <= config$final.accept.rate) {
+              ws$epsilon <- config$final.epsilon
+              break  # FIXME: this should be redundant given loop condition above
+            }
+            
+          }
+          
+          
+        })
+        
+        ## if we're not done yet, then schedule this block to execute again ASAP
+        # note that we can be interrupted by other reactive updates to, for instance, update a text output
+        if (isolate(ws$epsilon != config$final.epsilon)) {   # stopping condition
+          invalidateLater(0, session)
+        }
+        
+        
+    })
   })
+  
+  
+  
   
   # Deleting user trace files after the user ends their session
   session$onSessionEnded(function() {
