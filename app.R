@@ -404,34 +404,16 @@ server <- function(input, output, session) {
   )
   
   
-  
-  
-  ## SHINY function derived from run.smc in Kaphi
-  run.smc.shiny <- function(ws, trace.file='', regex=NA, seed=NA, nthreads=1, verbose=FALSE, model='', modelsList = list(), parametersList = list(), distributionsList = list(), ...) {
-    
-  }    # end of modified function
-  
-  
   # Initializing variables needed when running Kaphi
   uniqueTraceFileName <- Sys.time()
   trace <- reactiveValues()
   
   
-  
-  # ## create reactiveValues objects where we can track the elements in shiny.df and results
-  # result <- reactiveValues(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={},
-  #                          shiny.df = data.frame(n=numeric(), 
-  #                                                 part.num=numeric(), 
-  #                                                 weight=numeric(), 
-  #                                                 sapply(config$params, function(x) {x=numeric()}), 
-  #                                                 sapply(sapply(1:config$nsample, function(y) {paste0('dist.', y)}), function(z) {z=numeric()})),
-  #                          ind=1, 
-  #                          niter=0)
-  
   observeEvent(
     input$runKaphi,
     {
-      # this is a repeat of initializeWS actionButton evaluation
+      # this is a chunk of duplicated code frin initializeWS actionButton evaluation
+      # reason for this is that we want the user to visualize the priors as often as possible rather than waiting for them to run Kaphi first
       config$nparticle <- input$particleNumber
       config$nsample <- input$sampleNumber
       config$ess.tolerance <- input$ESSTolerance
@@ -465,8 +447,8 @@ server <- function(input, output, session) {
       ws <- init.workspace(obs.tree, config)
       trace.file <- sprintf("tmp/%s.tsv", uniqueTraceFileName)
       model <- input$specificModel
-      nthreads <- 1
-      verbose <- TRUE
+      nthreads <- 1                                                      # hard code a max?
+      verbose <- FALSE                                                   # user can probably modify this later
       
       config <- ws$config
       
@@ -485,9 +467,7 @@ server <- function(input, output, session) {
       ws$epsilon <- .Machine$double.xmax
       
       
-      
-      
-      ## create reactiveValues objects where we can track the elements in shiny.df and results
+      ## create reactiveValues objects where we can track the elements in results, shiny.df, and ws
       result <- reactiveValues(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={},
                                shiny.df = data.frame(n=numeric(), 
                                                      part.num=numeric(), 
@@ -495,13 +475,13 @@ server <- function(input, output, session) {
                                                      sapply(config$params, function(x) {x=numeric()}), 
                                                      sapply(sapply(1:config$nsample, function(y) {paste0('dist.', y)}), function(z) {z=numeric()})),
                                ind=1, 
-                               ws=ws)
+                               ws=ws)   #tracking ws and updating is very important, otherwise will 'restart' the simulation every 10 iterations
       
-      
+      # this section of code will continue to repeat until the stopping condition is met
       observe({
         isolate({
           # this is where we do the expensive computing
-          for (iteration in 1:10) {
+          for (iteration in 1:5) {             # chunk of 10 iterations delay for plot update
             
             result$niter <- result$niter + 1
             
@@ -557,7 +537,7 @@ server <- function(input, output, session) {
             
             ## SHINY function for param trajectories and updated distributions --> update delay of ten iterations
             userParams = parameters[[model]]
-            if (iteration %% 10 == 0) {
+            if (iteration %% 5 == 0) {
               observe(
                 lapply(seq_len(length(userParams)), function(i) {
                   
@@ -629,7 +609,7 @@ server <- function(input, output, session) {
         
         ## if we're not done yet, then schedule this block to execute again ASAP
         # note that we can be interrupted by other reactive updates to, for instance, update a text output
-        if (isolate(result$ws$epsilon != config$final.epsilon)) {   # stopping condition
+        if (isolate(result$ws$epsilon != config$final.epsilon)) {   # stopping condition for Kaphi::run.smc
           invalidateLater(0, session)
         }
         
