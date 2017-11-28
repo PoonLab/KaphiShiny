@@ -470,22 +470,6 @@ server <- function(input, output, session) {
       
       config <- ws$config
       
-      
-      
-      ## create reactiveValues objects where we can track the elements in shiny.df and results
-      result <- reactiveValues(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={},
-                               shiny.df = data.frame(n=numeric(), 
-                                                     part.num=numeric(), 
-                                                     weight=numeric(), 
-                                                     sapply(config$params, function(x) {x=numeric()}), 
-                                                     sapply(sapply(1:config$nsample, function(y) {paste0('dist.', y)}), function(z) {z=numeric()})),
-                               ind=1, 
-                               niter=0)
-      
-      
-      
-      
-      
       # clear file and write header row
       write.table(t(c(
         'n', 'part.num', 'weight', config$params, paste0('dist.', 1:config$nsample)
@@ -500,6 +484,20 @@ server <- function(input, output, session) {
       #result$niter <- 0
       ws$epsilon <- .Machine$double.xmax
       
+      
+      
+      
+      ## create reactiveValues objects where we can track the elements in shiny.df and results
+      result <- reactiveValues(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={},
+                               shiny.df = data.frame(n=numeric(), 
+                                                     part.num=numeric(), 
+                                                     weight=numeric(), 
+                                                     sapply(config$params, function(x) {x=numeric()}), 
+                                                     sapply(sapply(1:config$nsample, function(y) {paste0('dist.', y)}), function(z) {z=numeric()})),
+                               ind=1, 
+                               ws=ws)
+      
+      
       observe({
         isolate({
           # this is where we do the expensive computing
@@ -508,34 +506,34 @@ server <- function(input, output, session) {
             result$niter <- result$niter + 1
             
             # update epsilon
-            ws <- .next.epsilon(ws)
+            result$ws <- .next.epsilon(result$ws)
             
             # provide some feedback
             lap <- proc.time() - ptm
-            cat ("Step ", result$niter, " epsilon:", ws$epsilon, " ESS:", .ess(ws$weights),
+            cat ("Step ", result$niter, " epsilon:", result$ws$epsilon, " ESS:", .ess(result$ws$weights),
                  "accept:", result$accept.rate[length(result$accept.rate)],
                  "elapsed:", round(lap[['elapsed']],1), "s\n")
             
             # resample particles according to their weights
-            if (.ess(ws$weights) < config$ess.tolerance) {
-              ws <- .resample.particles(ws)
+            if (.ess(result$ws$weights) < config$ess.tolerance) {
+              result$ws <- .resample.particles(result$ws)
             }
             
             # perturb particles
-            ws$accept <- vector()    # vector to keep track of which particles were accepted through parallelization in .perturb.particles
-            ws$alive <- 0
-            ws <- .perturb.particles(ws, model, n.threads=nthreads)  # Metropolis-Hastings sampling
+            result$ws$accept <- vector()    # vector to keep track of which particles were accepted through parallelization in .perturb.particles
+            result$ws$alive <- 0
+            result$ws <- .perturb.particles(result$ws, model, n.threads=nthreads)  # Metropolis-Hastings sampling
             
             # record everything
-            result$theta[[result$niter]] <- ws$particles
-            result$weights[[result$niter]] <- ws$weights
-            result$epsilons <- c(result$epsilons, ws$epsilon)
-            result$accept.rate <- c(result$accept.rate, ws$accepted / ws$alive)      # changed ws$accept to ws$accepted; didn't want dual behaviour of ws$accept switching back and forth between vector and int
+            result$theta[[result$niter]] <- result$ws$particles
+            result$weights[[result$niter]] <- result$ws$weights
+            result$epsilons <- c(result$epsilons, result$ws$epsilon)
+            result$accept.rate <- c(result$accept.rate, result$ws$accepted / result$ws$alive)      # changed result$ws$accept to result$ws$accepted; didn't want dual behaviour of result$ws$accept switching back and forth between vector and int
             
             # write output to file if specified
             for (i in 1:config$nparticle) {
               write.table(
-                x=t(c(result$niter, i, round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5))),
+                x=t(c(result$niter, i, round(result$ws$weights[i],10), round(result$ws$particles[i,],5), round(result$ws$dists[,i], 5))),
                 file=trace.file,
                 append=TRUE,
                 sep="\t",
@@ -544,14 +542,14 @@ server <- function(input, output, session) {
               )
               
               ## SHINY data frame being populated
-              result$shiny.df[result$ind,] <- t(c(result$niter, i, round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5)))
+              result$shiny.df[result$ind,] <- t(c(result$niter, i, round(result$ws$weights[i],10), round(result$ws$particles[i,],5), round(result$ws$dists[,i], 5)))
               result$ind <- result$ind + 1
             }
             
             # report stopping conditions
             if (verbose) {
               cat("run.smc result$niter: ", result$niter, "\n")
-              cat ("ws$epsilon: ", ws$epsilon, "\n");
+              cat ("result$ws$epsilon: ", result$ws$epsilon, "\n");
               cat ("config$final.epsilon: ", config$final.epsilon, "\n");
               cat ("result$accept.rate: ", result$accept.rate, "\n");
               cat ("config$final.accept.rate: ", config$final.accept.rate, "\n");
@@ -620,7 +618,7 @@ server <- function(input, output, session) {
             
             # if acceptance rate is low enough, we're done
             if (result$accept.rate[result$niter] <= config$final.accept.rate) {
-              ws$epsilon <- config$final.epsilon
+              result$ws$epsilon <- config$final.epsilon
               break  # FIXME: this should be redundant given loop condition above
             }
             
@@ -631,7 +629,7 @@ server <- function(input, output, session) {
         
         ## if we're not done yet, then schedule this block to execute again ASAP
         # note that we can be interrupted by other reactive updates to, for instance, update a text output
-        if (isolate(ws$epsilon != config$final.epsilon)) {   # stopping condition
+        if (isolate(result$ws$epsilon != config$final.epsilon)) {   # stopping condition
           invalidateLater(0, session)
         }
         
