@@ -418,8 +418,15 @@ server <- function(input, output, session) {
   
   
   
-  ## create reactiveValues objects where we can track the elements in shiny.df and results
-  result <- reactiveValues(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={})
+  # ## create reactiveValues objects where we can track the elements in shiny.df and results
+  # result <- reactiveValues(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={},
+  #                          shiny.df = data.frame(n=numeric(), 
+  #                                                 part.num=numeric(), 
+  #                                                 weight=numeric(), 
+  #                                                 sapply(config$params, function(x) {x=numeric()}), 
+  #                                                 sapply(sapply(1:config$nsample, function(y) {paste0('dist.', y)}), function(z) {z=numeric()})),
+  #                          ind=1, 
+  #                          niter=0)
   
   observeEvent(
     input$runKaphi,
@@ -463,20 +470,26 @@ server <- function(input, output, session) {
       
       config <- ws$config
       
+      
+      
+      ## create reactiveValues objects where we can track the elements in shiny.df and results
+      result <- reactiveValues(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={},
+                               shiny.df = data.frame(n=numeric(), 
+                                                     part.num=numeric(), 
+                                                     weight=numeric(), 
+                                                     sapply(config$params, function(x) {x=numeric()}), 
+                                                     sapply(sapply(1:config$nsample, function(y) {paste0('dist.', y)}), function(z) {z=numeric()})),
+                               ind=1, 
+                               niter=0)
+      
+      
+      
+      
+      
       # clear file and write header row
       write.table(t(c(
         'n', 'part.num', 'weight', config$params, paste0('dist.', 1:config$nsample)
       )), file=trace.file, sep='\t', quote=FALSE, row.names=FALSE, col.names=FALSE)
-      
-      
-      ## create reactiveValues objects where we can track the elements in shiny.df and results
-      #result <- reactiveValues(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={})
-      shiny.df <- data.frame(n=numeric(), 
-                            part.num=numeric(), 
-                            weight=numeric(), 
-                            sapply(config$params, function(x) {x=numeric()}), 
-                            sapply(sapply(1:config$nsample, function(y) {paste0('dist.', y)}), function(z) {z=numeric()}))
-      #ind <- 1 
       
       
       # draw particles from prior distribution, assign weights and simulate data
@@ -484,7 +497,7 @@ server <- function(input, output, session) {
       cat ("Initializing SMC-ABC run with", config$nparticle, "particles\n")
       ws <- initialize.smc(ws, input$specificModel)
       
-      #niter <- 0
+      #result$niter <- 0
       ws$epsilon <- .Machine$double.xmax
       
       observe({
@@ -492,15 +505,14 @@ server <- function(input, output, session) {
           # this is where we do the expensive computing
           for (iteration in 1:10) {
             
-            niter <- result$niter + 1
-            result$niter <- niter
+            result$niter <- result$niter + 1
             
             # update epsilon
             ws <- .next.epsilon(ws)
             
             # provide some feedback
             lap <- proc.time() - ptm
-            cat ("Step ", niter, " epsilon:", ws$epsilon, " ESS:", .ess(ws$weights),
+            cat ("Step ", result$niter, " epsilon:", ws$epsilon, " ESS:", .ess(ws$weights),
                  "accept:", result$accept.rate[length(result$accept.rate)],
                  "elapsed:", round(lap[['elapsed']],1), "s\n")
             
@@ -515,15 +527,15 @@ server <- function(input, output, session) {
             ws <- .perturb.particles(ws, model, n.threads=nthreads)  # Metropolis-Hastings sampling
             
             # record everything
-            result$theta[[niter]] <- ws$particles
-            result$weights[[niter]] <- ws$weights
+            result$theta[[result$niter]] <- ws$particles
+            result$weights[[result$niter]] <- ws$weights
             result$epsilons <- c(result$epsilons, ws$epsilon)
             result$accept.rate <- c(result$accept.rate, ws$accepted / ws$alive)      # changed ws$accept to ws$accepted; didn't want dual behaviour of ws$accept switching back and forth between vector and int
             
             # write output to file if specified
             for (i in 1:config$nparticle) {
               write.table(
-                x=t(c(niter, i, round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5))),
+                x=t(c(result$niter, i, round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5))),
                 file=trace.file,
                 append=TRUE,
                 sep="\t",
@@ -532,13 +544,13 @@ server <- function(input, output, session) {
               )
               
               ## SHINY data frame being populated
-              shiny.df[ind,] <- t(c(niter, i, round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5)))
-              ind <- ind + 1
+              result$shiny.df[result$ind,] <- t(c(result$niter, i, round(ws$weights[i],10), round(ws$particles[i,],5), round(ws$dists[,i], 5)))
+              result$ind <- result$ind + 1
             }
             
             # report stopping conditions
             if (verbose) {
-              cat("run.smc niter: ", niter, "\n")
+              cat("run.smc result$niter: ", result$niter, "\n")
               cat ("ws$epsilon: ", ws$epsilon, "\n");
               cat ("config$final.epsilon: ", config$final.epsilon, "\n");
               cat ("result$accept.rate: ", result$accept.rate, "\n");
@@ -554,7 +566,7 @@ server <- function(input, output, session) {
                   # param trajectory
                   output[[paste0("meanTrajectoryOf", userParams[[i]])]] <- renderPlot(
                     plot(
-                      sapply(split(shiny.df[[userParams[[i]]]]*shiny.df$weight, shiny.df$n), sum),
+                      sapply(split(result$shiny.df[[userParams[[i]]]]*result$shiny.df$weight, result$shiny.df$n), sum),
                       type = 'o',
                       xlab='Iteration',
                       ylab=paste0('Mean ', userParams[[i]]),
@@ -564,36 +576,36 @@ server <- function(input, output, session) {
                   )
                   
                   # use denistiies to visualize posterior approximations
-                  nIterations = length(unique(shiny.df$n)) %/% 10
+                  nIterations = length(unique(result$shiny.df$n)) %/% 10
                   nColours = nIterations + 1
                   pal = rainbow(n=nColours, start=0, end=0.5, v=1, s=1)
                   output[[paste0("posteriorApproximationsOf", userParams[[i]])]] <- renderPlot({
                     plot(density
-                         (shiny.df[[userParams[[i]]]][shiny.df$n==1], 
-                           weights=shiny.df$weight[shiny.df$n==1]), 
+                         (result$shiny.df[[userParams[[i]]]][result$shiny.df$n==1], 
+                           weights=result$shiny.df$weight[result$shiny.df$n==1]), 
                          col=pal[1], 
                          lwd=2, 
-                         main=paste0('SIR ', config$priors[[userParams[[i]]]]), 
-                         xlab=paste0('SIR rate parameter (', userParams[[i]], ')',
+                         main=paste0(model, ' ', config$priors[[userParams[[i]]]]), 
+                         xlab=paste0(model, ' rate parameter (', userParams[[i]], ')',
                                      '\nMean: ',
-                                     mean(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)]), 
+                                     mean(result$shiny.df[[userParams[[i]]]][result$shiny.df$n==max(result$shiny.df$n)]), 
                                      '    Median: ', 
-                                     median(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)]),
+                                     median(result$shiny.df[[userParams[[i]]]][result$shiny.df$n==max(result$shiny.df$n)]),
                                      '\n95% CI (',
-                                     quantile(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)], c(0.025, 0.975))[1],
+                                     quantile(result$shiny.df[[userParams[[i]]]][result$shiny.df$n==max(result$shiny.df$n)], c(0.025, 0.975))[1],
                                      ' , ',
-                                     quantile(shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)], c(0.025, 0.975))[2],
+                                     quantile(result$shiny.df[[userParams[[i]]]][result$shiny.df$n==max(result$shiny.df$n)], c(0.025, 0.975))[2],
                                      ')'), 
                          cex.lab=0.8
                     )
                     
                     for (j in 1:nIterations) {
-                      temp <- shiny.df[shiny.df$n==j*10,]
+                      temp <- result$shiny.df[result$shiny.df$n==j*10,]
                       lines(density(temp[[userParams[[i]]]], weights=temp$weight), col=pal[j+1], lwd=1.5)
                     }
                     lines(density
-                          (shiny.df[[userParams[[i]]]][shiny.df$n==max(shiny.df$n)], 
-                            weights=shiny.df$weight[shiny.df$n==max(shiny.df$n)]), 
+                          (result$shiny.df[[userParams[[i]]]][result$shiny.df$n==max(result$shiny.df$n)], 
+                            weights=result$shiny.df$weight[result$shiny.df$n==max(result$shiny.df$n)]), 
                           col='black', 
                           lwd=2)
                     # Show the prior distribution
@@ -607,7 +619,7 @@ server <- function(input, output, session) {
             
             
             # if acceptance rate is low enough, we're done
-            if (result$accept.rate[niter] <= config$final.accept.rate) {
+            if (result$accept.rate[result$niter] <= config$final.accept.rate) {
               ws$epsilon <- config$final.epsilon
               break  # FIXME: this should be redundant given loop condition above
             }
