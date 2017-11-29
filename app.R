@@ -420,14 +420,17 @@ server <- function(input, output, session) {
   )
   
   
-  # Initializing variables needed when running Kaphi
-  uniqueTraceFileName <- Sys.time()
-  trace <- reactiveValues()
+  
   
   
   observeEvent(
     input$runKaphi,
     {
+      
+      # Initializing variables needed when running Kaphi
+      uniqueTraceFileName <- Sys.time()
+      trace <- reactiveValues()
+      
       # this is a chunk of duplicated code frin initializeWS actionButton evaluation
       # reason for this is that we want the user to visualize the priors as often as possible rather than waiting for them to run Kaphi first
       
