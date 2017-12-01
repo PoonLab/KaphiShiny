@@ -226,16 +226,17 @@ server <- function(input, output, session) {
       distr.name = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
       newTab <- tabPanel(
         paste0(modelParams[[i]]),
-        create.dropdown(distr.name),
-        create.param.args(distr.name)
+        observe(create.dropdown(distr.name)),
+        observe(create.param.args(distr.name))
       )
-      tablist <- c(tablist, newTab)
+      tablist[[i]] <- newTab
     }
     do.call(tabsetPanel, tablist)
   })
   
   # Creating a distribution drop down menu input for each specific prior
   create.dropdown <- function(distr.name) {
+    uiOutput(distr.name)
     output[[distr.name]] <- renderUI({
       selectInput(inputId = distr.name, 
                   label = "Distribution",  
@@ -247,6 +248,7 @@ server <- function(input, output, session) {
   create.param.args <- function(distr.name) {
     chosenDistr = input[[distr.name]]
     params.name = paste0(distr.name, 'Parameters')
+    uiOutput(params.name)
     output[[params.name]] <- renderUI({
       nNumericInputs = length(distributions[[chosenDistr]])
       numericInputs = lapply(seq_len(nNumericInputs), function(i) {
