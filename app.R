@@ -214,13 +214,13 @@ server <- function(input, output, session) {
   
   # Displaying priors for a specific model in tabs
   output$priorsTabs <- renderUI({
-    modelParameters = parameters[[input$specificModel]]
-    nTabs = length(modelParameters)
+    modelParams = parameters[[input$specificModel]]
+    nTabs = length(modelParams)
     tabs = lapply(seq_len(nTabs), function(i) {
-      distribution = paste0(input$specificModel, "Prior", modelParameters[[i]], "Distribution")
+      distribution = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
       tabPanel(
-        paste0(modelParameters[[i]]),
-        uiOutput(paste0(input$specificModel, "Prior", modelParameters[[i]])),
+        paste0(modelParams[[i]]),
+        uiOutput(paste0(input$specificModel, "Prior", modelParams[[i]])),
         uiOutput(paste0(distribution, "Parameters"))
       )
     })
@@ -230,9 +230,9 @@ server <- function(input, output, session) {
   # Creating a distribution  drop down menu input for each specific prior
   observe(
     lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
-      modelParameters = parameters[[input$specificModel]]
-      output[[paste0(input$specificModel, "Prior", modelParameters[[i]])]] <- renderUI({
-        distribution = paste0(input$specificModel, "Prior", modelParameters[[i]], "Distribution")
+      modelParams = parameters[[input$specificModel]]
+      output[[paste0(input$specificModel, "Prior", modelParams[[i]])]] <- renderUI({
+        distribution = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
         selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
       })
     }),
@@ -242,8 +242,8 @@ server <- function(input, output, session) {
   # Creating a series of numeric inputs for each prior's distribution parameters
   observe(
     lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
-      modelParameters = parameters[[input$specificModel]]
-      distributionID = paste0(input$specificModel, "Prior", modelParameters[[i]], "Distribution")
+      modelParams = parameters[[input$specificModel]]
+      distributionID = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
       chosenDistribution = input[[distributionID]]
       output[[paste0(distributionID, "Parameters")]] <- renderUI({
         nNumericInputs = length(distributions[[chosenDistribution]])
@@ -280,9 +280,9 @@ server <- function(input, output, session) {
   # Creating a distribution  drop down menu input for each specific proposal
   observe(
     lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
-      modelParameters = parameters[[input$specificModel]]
-      output[[paste0(input$specificModel, "Proposal", modelParameters[[i]])]] <- renderUI({
-        distribution = paste0(input$specificModel, "Proposal", modelParameters[[i]], "Distribution")
+      modelParams = parameters[[input$specificModel]]
+      output[[paste0(input$specificModel, "Proposal", modelParams[[i]])]] <- renderUI({
+        distribution = paste0(input$specificModel, "Proposal", modelParams[[i]], "Distribution")
         selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
       })
     }),
@@ -292,8 +292,8 @@ server <- function(input, output, session) {
   # Creating a series of numeric inputs for each proposal's distribution parameters
   observe(
     lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
-      modelParameters = parameters[[input$specificModel]]
-      distributionID = paste0(input$specificModel, "Proposal", modelParameters[[i]], "Distribution")
+      modelParams = parameters[[input$specificModel]]
+      distributionID = paste0(input$specificModel, "Proposal", modelParams[[i]], "Distribution")
       chosenDistribution = input[[distributionID]]
       output[[paste0(distributionID, "Parameters")]] <- renderUI({
         nNumericInputs = length(distributions[[chosenDistribution]])
@@ -532,7 +532,7 @@ server <- function(input, output, session) {
             # perturb particles
             result$ws$accept <- vector()    # vector to keep track of which particles were accepted through parallelization in .perturb.particles
             result$ws$alive <- 0
-            result$ws <- .perturb.particles(result$ws, model, n.threads=nthreads)  # Metropolis-Hastings sampling
+            result$ws <- .perturb.particles(result$ws, model, nthreads=nthreads)  # Metropolis-Hastings sampling
             
             # record everything
             result$theta[[result$niter]] <- result$ws$particles
