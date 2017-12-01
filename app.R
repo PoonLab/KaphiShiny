@@ -212,55 +212,63 @@ server <- function(input, output, session) {
     updateSelectInput(session, "specificModel", choices = models[[input$generalModel]])
   })
   
+  
+
+  
+  
+  
   # Displaying priors for a specific model in tabs
   output$priorsTabs <- renderUI({
     modelParams = parameters[[input$specificModel]]
     nTabs = length(modelParams)
-    tabs = lapply(seq_len(nTabs), function(i) {
-      distribution = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
-      tabPanel(
+    tablist <- list()
+    for (i in seq_len(nTabs)) {
+      distr.name = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
+      newTab <- tabPanel(
         paste0(modelParams[[i]]),
-        uiOutput(paste0(input$specificModel, "Prior", modelParams[[i]])),
-        uiOutput(paste0(distribution, "Parameters"))
+        create.dropdown(distr.name),
+        create.param.args(distr.name)
       )
-    })
-    do.call(tabsetPanel, tabs)
+      tablist <- c(tablist, newTab)
+    }
+    do.call(tabsetPanel, tablist)
   })
   
-  # Creating a distribution  drop down menu input for each specific prior
-  observe(
-    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
-      modelParams = parameters[[input$specificModel]]
-      output[[paste0(input$specificModel, "Prior", modelParams[[i]])]] <- renderUI({
-        distribution = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
-        selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
-      })
-    }),
-    priority = 100
-  )
+  # Creating a distribution drop down menu input for each specific prior
+  create.dropdown <- function(distr.name) {
+    output[[distr.name]] <- renderUI({
+      selectInput(inputId = distr.name, 
+                  label = "Distribution",  
+                  choices = names(distributions))
+    })
+  }
   
   # Creating a series of numeric inputs for each prior's distribution parameters
-  observe(
-    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
-      modelParams = parameters[[input$specificModel]]
-      distributionID = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
-      chosenDistribution = input[[distributionID]]
-      output[[paste0(distributionID, "Parameters")]] <- renderUI({
-        nNumericInputs = length(distributions[[chosenDistribution]])
-        numericInputs = lapply(seq_len(nNumericInputs), function(i) {
-          numericInput(
-            inputId = paste0(distributionID, chosenDistribution, i),
-            label = paste0(names(distributions[[chosenDistribution]])[[i]]),
-            value = distributions[[chosenDistribution]][[i]][[3]],
-            max = distributions[[chosenDistribution]][[i]][[2]],
-            min = distributions[[chosenDistribution]][[i]][[1]]
-          )
-        })
-        do.call(wellPanel, numericInputs)
+  create.param.args <- function(distr.name) {
+    chosenDistr = input[[distr.name]]
+    params.name = paste0(distr.name, 'Parameters')
+    output[[params.name]] <- renderUI({
+      nNumericInputs = length(distributions[[chosenDistr]])
+      numericInputs = lapply(seq_len(nNumericInputs), function(i) {
+        numericInput(
+          inputId = paste0(params.name, chosenDistr, i),
+          label = paste0(names(distributions[[chosenDistr]])[[i]]),
+          value = distributions[[chosenDistr]][[i]][[3]],
+          max = distributions[[chosenDistr]][[i]][[2]],
+          min = distributions[[chosenDistr]][[i]][[1]]
+        )
       })
-    }),
-    priority = 99
-  )
+      do.call(wellPanel, numericInputs)
+    })
+  }
+  
+  
+  
+  
+  
+  
+  
+  
   
   # Displaying proposals for a specific model in tabs
   output$proposalsTabs <- renderUI({
@@ -311,6 +319,13 @@ server <- function(input, output, session) {
     }),
     priority = 99
   )
+  
+  
+  
+  
+  
+  
+
   
   # Function for creating string expressions of distribution parameters that correspond to config formatting
   distribution.parameters <- function(distributionString, distributionID) {
