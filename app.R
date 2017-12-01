@@ -217,52 +217,68 @@ server <- function(input, output, session) {
   
   
   
+  ## create reactiveValues objects where we can track the elements in results, shiny.df, and ws
+  result <- reactiveValues(niter=0, theta=list(), weights=list(), accept.rate={}, epsilons={},
+                           shiny.df = data.frame(n=numeric(), 
+                                                 part.num=numeric(), 
+                                                 weight=numeric(), 
+                                                 sapply(config$params, function(x) {x=numeric()}), 
+                                                 sapply(sapply(1:config$nsample, function(y) {paste0('dist.', y)}), function(z) {z=numeric()})),
+                           ind=1, 
+                           ws=ws)   #tracking ws and updating is very important, otherwise will 'restart' the simulation every 10 iterations
+  
   # Displaying priors for a specific model in tabs
   output$priorsTabs <- renderUI({
-    modelParams = parameters[[input$specificModel]]
-    nTabs = length(modelParams)
-    tablist <- list()
-    for (i in seq_len(nTabs)) {
-      distr.name = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
-      newTab <- tabPanel(
-        paste0(modelParams[[i]]),
-        observe(create.dropdown(distr.name)),
-        observe(create.param.args(distr.name))
+    modelParameters = parameters[[input$specificModel]]
+    nTabs = length(modelParameters)
+    tabs = lapply(seq_len(nTabs), function(i) {
+      distribution = paste0(input$specificModel, "Prior", modelParameters[[i]], "Distribution")
+      tabPanel(
+        paste0(modelParameters[[i]]),
+        uiOutput(paste0(input$specificModel, "Prior", modelParameters[[i]])),
+        uiOutput(paste0(distribution, "Parameters"))
       )
-      tablist[[i]] <- newTab
-    }
-    do.call(tabsetPanel, tablist)
+    })
+    do.call(tabsetPanel, tabs)
   })
   
-  # Creating a distribution drop down menu input for each specific prior
-  create.dropdown <- function(distr.name) {
-    uiOutput(distr.name)
-    output[[distr.name]] <- renderUI({
-      selectInput(inputId = distr.name, 
-                  label = "Distribution",  
-                  choices = names(distributions))
-    })
-  }
+  # Creating a distribution  drop down menu input for each specific prior
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      modelParams = parameters[[input$specificModel]]
+      output[[paste0(input$specificModel, "Prior", modelParams[[i]])]] <- renderUI({
+        distribution = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
+        selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
+      })
+    }),
+    priority = 100
+  )
   
   # Creating a series of numeric inputs for each prior's distribution parameters
-  create.param.args <- function(distr.name) {
-    chosenDistr = input[[distr.name]]
-    params.name = paste0(distr.name, 'Parameters')
-    uiOutput(params.name)
-    output[[params.name]] <- renderUI({
-      nNumericInputs = length(distributions[[chosenDistr]])
-      numericInputs = lapply(seq_len(nNumericInputs), function(i) {
-        numericInput(
-          inputId = paste0(params.name, chosenDistr, i),
-          label = paste0(names(distributions[[chosenDistr]])[[i]]),
-          value = distributions[[chosenDistr]][[i]][[3]],
-          max = distributions[[chosenDistr]][[i]][[2]],
-          min = distributions[[chosenDistr]][[i]][[1]]
-        )
+  observe(
+    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+      modelParams = parameters[[input$specificModel]]
+      distributionID = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
+      chosenDistribution = input[[distributionID]]
+      output[[paste0(distributionID, "Parameters")]] <- renderUI({
+        nNumericInputs = length(distributions[[chosenDistribution]])
+        numericInputs = lapply(seq_len(nNumericInputs), function(i) {
+          numericInput(
+            inputId = paste0(distributionID, chosenDistribution, i),
+            label = paste0(names(distributions[[chosenDistribution]])[[i]]),
+            value = distributions[[chosenDistribution]][[i]][[3]],
+            max = distributions[[chosenDistribution]][[i]][[2]],
+            min = distributions[[chosenDistribution]][[i]][[1]]
+          )
+        })
+        do.call(wellPanel, numericInputs)
       })
-      do.call(wellPanel, numericInputs)
-    })
-  }
+    }),
+    priority = 99
+  )
+  
+  
+  
   
   
   
