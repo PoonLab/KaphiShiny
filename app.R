@@ -217,16 +217,21 @@ server <- function(input, output, session) {
     updateSelectInput(session, "specificModel", choices = models[[input$generalModel]])
   })
   
+  
+  
+  
+  
   # Displaying priors for a specific model in tabs
   output$priorsTabs <- renderUI({
     modelParams = parameters[[input$specificModel]]
     nTabs = length(modelParams)
     tabs = lapply(seq_len(nTabs), function(i) {
-      distribution = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
+      priorStr <- paste0(input$specificModel, "Prior", modelParams[[i]])
+      distr = paste0(priorStr, "Distribution")
       tabPanel(
         paste0(modelParams[[i]]),
-        uiOutput(paste0(input$specificModel, "Prior", modelParams[[i]])),
-        uiOutput(paste0(distribution, "Parameters"))
+        uiOutput(priorStr),
+        uiOutput(paste0(distr, "Parameters"))
       )
     })
     do.call(tabsetPanel, tabs)
@@ -234,49 +239,59 @@ server <- function(input, output, session) {
   
   # Creating a distribution  drop down menu input for each specific prior
   observe(
-    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+    {
       modelParams = parameters[[input$specificModel]]
-      output[[paste0(input$specificModel, "Prior", modelParams[[i]])]] <- renderUI({
-        distribution = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
-        selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
+      lapply(seq_len(length(modelParams)), function(i) {
+        priorStr <- paste0(input$specificModel, "Prior", modelParams[[i]])
+        output[[priorStr]] <- renderUI({
+          distr = paste0(priorStr, "Distribution")
+          selectInput(inputId = distr, label = "Distribution",  choices = names(distributions))
+        })
       })
-    }),
-    priority = 100
+    }
   )
   
   # Creating a series of numeric inputs for each prior's distribution parameters
   observe(
-    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+    {
       modelParams = parameters[[input$specificModel]]
-      distributionID = paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
-      chosenDistribution = input[[distributionID]]
-      output[[paste0(distributionID, "Parameters")]] <- renderUI({
-        nNumericInputs = length(distributions[[chosenDistribution]])
-        numericInputs = lapply(seq_len(nNumericInputs), function(i) {
-          numericInput(
-            inputId = paste0(distributionID, chosenDistribution, i),
-            label = paste0(names(distributions[[chosenDistribution]])[[i]]),
-            value = distributions[[chosenDistribution]][[i]][[3]],
-            max = distributions[[chosenDistribution]][[i]][[2]],
-            min = distributions[[chosenDistribution]][[i]][[1]]
-          )
+      lapply(seq_len(length(modelParams)), function(i) {
+        priorStr <- paste0(input$specificModel, "Prior", modelParams[[i]])
+        distributionID = paste0(priorStr, "Distribution")
+        chosenDistr = input[[distributionID]]
+        output[[paste0(distributionID, "Parameters")]] <- renderUI({
+          input.vals <- distributions[[chosenDistr]]
+          nNumericInputs = length(input.vals)
+          numericInputs = lapply(seq_len(nNumericInputs), function(i) {
+            numericInput(
+              inputId = paste0(distributionID, chosenDistr, i),
+              label = paste0(names(input.vals)[[i]]),
+              value = input.vals[[i]][[3]],
+              max = input.vals[[i]][[2]],
+              min = input.vals[[i]][[1]]
+            )
+          })
+          do.call(wellPanel, numericInputs)
         })
-        do.call(wellPanel, numericInputs)
       })
-    }),
-    priority = 99
+    }
   )
+  
+  
+  
+  
   
   # Displaying proposals for a specific model in tabs
   output$proposalsTabs <- renderUI({
-    modelParameters = parameters[[input$specificModel]]
-    nTabs = length(modelParameters)
+    modelParams = parameters[[input$specificModel]]
+    nTabs = length(modelParams)
     tabs = lapply(seq_len(nTabs), function(i) {
-      distribution = paste0(input$specificModel, "Proposal", modelParameters[[i]], "Distribution")
+      propStr <- paste0(input$specificModel, "Proposal", modelParams[[i]])
+      distr = paste0(propStr, "Distribution")
       tabPanel(
-        paste0(modelParameters[[i]]),
-        uiOutput(paste0(input$specificModel, "Proposal", modelParameters[[i]])),
-        uiOutput(paste0(distribution, "Parameters"))
+        paste0(modelParams[[i]]),
+        uiOutput(propStr),
+        uiOutput(paste0(distr, "Parameters"))
       )
     })
     do.call(tabsetPanel, tabs)
@@ -284,41 +299,50 @@ server <- function(input, output, session) {
   
   # Creating a distribution  drop down menu input for each specific proposal
   observe(
-    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
-      modelParams = parameters[[input$specificModel]]
-      output[[paste0(input$specificModel, "Proposal", modelParams[[i]])]] <- renderUI({
-        distribution = paste0(input$specificModel, "Proposal", modelParams[[i]], "Distribution")
-        selectInput(inputId = distribution, label = "Distribution",  choices = names(distributions))
+    {
+      modelParams <- parameters[[input$specificModel]]
+      lapply(seq_len(length(modelParams)), function(i) {
+        propStr <- paste0(input$specificModel, "Proposal", modelParams[[i]])
+        output[[propStr]] <- renderUI({
+          distr = paste0(propStr, "Distribution")
+          selectInput(inputId = distr, label = "Distribution",  choices = names(distributions))
+        })
       })
-    }),
-    priority = 100
+    }
   )
   
   # Creating a series of numeric inputs for each proposal's distribution parameters
   observe(
-    lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+    {
       modelParams = parameters[[input$specificModel]]
-      distributionID = paste0(input$specificModel, "Proposal", modelParams[[i]], "Distribution")
-      chosenDistribution = input[[distributionID]]
-      output[[paste0(distributionID, "Parameters")]] <- renderUI({
-        nNumericInputs = length(distributions[[chosenDistribution]])
-        numericInputs = lapply(seq_len(nNumericInputs), function(i) {
-          numericInput(
-            inputId = paste0(distributionID, chosenDistribution, i),
-            label = paste0(names(distributions[[chosenDistribution]])[[i]]),
-            value = distributions[[chosenDistribution]][[i]][[3]],
-            max = distributions[[chosenDistribution]][[i]][[2]],
-            min = distributions[[chosenDistribution]][[i]][[1]]
-          )
+      lapply(seq_len(length(parameters[[input$specificModel]])), function(i) {
+        propStr <- paste0(input$specificModel, "Proposal", modelParams[[i]])
+        distributionID = paste0(propStr, "Distribution")
+        chosenDistr = input[[distributionID]]
+        output[[paste0(distributionID, "Parameters")]] <- renderUI({
+          input.vals <- distributions[[chosenDistr]]
+          nNumericInputs = length(input.vals)
+          numericInputs = lapply(seq_len(nNumericInputs), function(i) {
+            numericInput(
+              inputId = paste0(distributionID, chosenDistr, i),
+              label = paste0(names(input.vals)[[i]]),
+              value = input.vals[[i]][[3]],
+              max = input.vals[[i]][[2]],
+              min = input.vals[[i]][[1]]
+            )
+          })
+          do.call(wellPanel, numericInputs)
         })
-        do.call(wellPanel, numericInputs)
       })
-    }),
-    priority = 99
+    }
   )
   
+  
+  
+  
+  
   # Function for creating string expressions of distribution parameters that correspond to config formatting
-  distribution.parameters <- function(distributionString, distributionID) {
+  create.str <- function(distributionString, distributionID) {
     distributionParameters <- list()
     for(i in seq_len(length(distributions[[distributionString]]))) {
       distributionParameters[[i]] <- paste0(names(distributions[[distributionString]])[[i]], "=", input[[paste0(distributionID, input[[distributionID]], i)]])
@@ -350,27 +374,30 @@ server <- function(input, output, session) {
       config$quality <- input$quality
       config$step.tolerance <- input$stepTolerance
       
-      # Populating config with priors and proposals
-      modelParameters = parameters[[input$specificModel]]
-      for(i in seq_len(length(modelParameters))) {
-        parameter <- toString(modelParameters[[i]])
-        priorDistribution <- paste0(input$specificModel, "Prior", modelParameters[[i]], "Distribution")
-        proposalDistribution <- paste0(input$specificModel, "Proposal", modelParameters[[i]], "Distribution")
-        # Requiring data needed to populate the config
-        req(parameter)
-        req(input[[priorDistribution]])
-        req(input[[proposalDistribution]])
-        req(distribution.parameters(input[[priorDistribution]], priorDistribution))
-        req(distribution.parameters(input[[proposalDistribution]], proposalDistribution))
-        config$params[[i]] <- parameter
-        config$priors[[parameter]] <- paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
-        config$prior.densities[[parameter]] <- paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
-        config$proposals[[parameter]] <- paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
-        config$proposal.densities[[parameter]] <- paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
-      }
-      
       # Setting config model
       config <- set.model(config, input$specificModel)
+      
+      # Populating config with priors and proposals
+      modelParams = parameters[[input$specificModel]]
+      for(i in seq_len(length(modelParams))) {
+        indiv <- toString(modelParams[[i]])
+        priorDistr <- paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
+        propDistr <- paste0(input$specificModel, "Proposal", modelParams[[i]], "Distribution")
+        
+        # Requiring data needed to populate the config
+        req(indiv)
+        req(input[[priorDistr]])
+        req(input[[propDistr]])
+        req(create.str(input[[priorDistr]], priorDistr))
+        req(create.str(input[[propDistr]], propDistr))
+        
+        config$params[[i]] <- indiv
+        config$priors[[indiv]] <- paste0("r", input[[priorDistr]], "(n=1,", create.str(input[[priorDistr]], priorDistr), ")")
+        config$prior.densities[[indiv]] <- paste0("d", input[[priorDistr]], "(arg.prior,", create.str(input[[priorDistr]], priorDistr), ")")
+        config$proposals[[indiv]] <- paste0("r", input[[propDistr]], "(n=1,", create.str(input[[propDistr]], propDistr), ")")
+        config$proposal.densities[[indiv]] <- paste0("d", input[[propDistr]], "(arg.delta,", create.str(input[[propDistr]], propDistr), ")")
+      }
+      
       
       # Plotting prior distributions (derived from plot.smc.config)
       y <- rbind(sapply(1:1000, function(x) sample.priors(config)))
@@ -399,11 +426,11 @@ server <- function(input, output, session) {
       
       # Rendering means trajectories tabs
       output$meansTrajectories <- renderUI({
-        nTabs = length(modelParameters)
+        nTabs = length(modelParams)
         tabs = lapply(seq_len(nTabs), function(i) {
           tabPanel(
-            paste0(modelParameters[[i]]),
-            plotOutput(outputId = paste0("meanTrajectoryOf", modelParameters[[i]]))
+            paste0(modelParams[[i]]),
+            plotOutput(outputId = paste0("meanTrajectoryOf", modelParams[[i]]))
           )
         })
         do.call(tabsetPanel, tabs)
@@ -411,11 +438,11 @@ server <- function(input, output, session) {
       
       # Rendering posteriors approximations tabs
       output$posteriorsApproximations <- renderUI({
-        nTabs = length(modelParameters)
+        nTabs = length(modelParams)
         tabs = lapply(seq_len(nTabs), function(i) {
           tabPanel(
-            paste0(modelParameters[[i]]),
-            plotOutput(outputId = paste0("posteriorApproximationsOf", modelParameters[[i]]))
+            paste0(modelParams[[i]]),
+            plotOutput(outputId = paste0("posteriorApproximationsOf", modelParams[[i]]))
           )
         })
         do.call(tabsetPanel, tabs)
@@ -448,7 +475,7 @@ server <- function(input, output, session) {
       req(input$quality)
       req(input$stepTolerance)
       
-      # Populating config w/ SMC settings
+      # Populating config with SMC settings
       config$nparticle <- input$particleNumber
       config$nsample <- input$sampleNumber
       config$ess.tolerance <- input$ESSTolerance
@@ -457,21 +484,30 @@ server <- function(input, output, session) {
       config$quality <- input$quality
       config$step.tolerance <- input$stepTolerance
       
-      # Populating config with priors and proposals
-      modelParameters = parameters[[input$specificModel]]
-      for(i in seq_len(length(modelParameters))) {
-        parameter <- toString(modelParameters[[i]])
-        priorDistribution <- paste0(input$specificModel, "Prior", modelParameters[[i]], "Distribution")
-        proposalDistribution <- paste0(input$specificModel, "Proposal", modelParameters[[i]], "Distribution")
-        config$params[[i]] <- parameter
-        config$priors[[parameter]] <- paste0("r", input[[priorDistribution]], "(n=1,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
-        config$prior.densities[[parameter]] <- paste0("d", input[[priorDistribution]], "(arg.prior,", distribution.parameters(input[[priorDistribution]], priorDistribution), ")")
-        config$proposals[[parameter]] <- paste0("r", input[[proposalDistribution]], "(n=1,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
-        config$proposal.densities[[parameter]] <- paste0("d", input[[proposalDistribution]], "(arg.delta,", distribution.parameters(input[[proposalDistribution]], proposalDistribution), ")")
-      }
-      
       # Setting config model
       config <- set.model(config, input$specificModel)
+      
+      # Populating config with priors and proposals
+      modelParams = parameters[[input$specificModel]]
+      for(i in seq_len(length(modelParams))) {
+        indiv <- toString(modelParams[[i]])
+        priorDistr <- paste0(input$specificModel, "Prior", modelParams[[i]], "Distribution")
+        propDistr <- paste0(input$specificModel, "Proposal", modelParams[[i]], "Distribution")
+        
+        # Requiring data needed to populate the config
+        req(indiv)
+        req(input[[priorDistr]])
+        req(input[[propDistr]])
+        req(create.str(input[[priorDistr]], priorDistr))
+        req(create.str(input[[propDistr]], propDistr))
+        
+        config$params[[i]] <- indiv
+        config$priors[[indiv]] <- paste0("r", input[[priorDistr]], "(n=1,", create.str(input[[priorDistr]], priorDistr), ")")
+        config$prior.densities[[indiv]] <- paste0("d", input[[priorDistr]], "(arg.prior,", create.str(input[[priorDistr]], priorDistr), ")")
+        config$proposals[[indiv]] <- paste0("r", input[[propDistr]], "(n=1,", create.str(input[[propDistr]], propDistr), ")")
+        config$proposal.densities[[indiv]] <- paste0("d", input[[propDistr]], "(arg.delta,", create.str(input[[propDistr]], propDistr), ")")
+      }
+      
       
       # Loading tree input
       if (is.null(newickInput$data)) return()
@@ -516,7 +552,7 @@ server <- function(input, output, session) {
       observe({
         isolate({
           # this is where we do the expensive computing
-          for (iteration in 1:5) {             # chunk of 10 iterations delay for plot update
+          for (iteration in 1:5) {             # chunk of x iterations delay for plot update
             
             result$niter <- result$niter + 1
             
