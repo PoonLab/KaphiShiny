@@ -52,11 +52,7 @@
    purchases). Search for "command line tools" (in the search field on the left), then click on version corresponding to the
    installed version of Xcode and click on the the .dmg link to download it. Run the .dmg and follow the generated prompts
    to the end of installation.
-4. Installing Homebrew
-    ```
-    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-    ```
-5. Installing R Packages
+4. Installing R Packages
     ```
     R
     install.packages("shiny")
@@ -64,7 +60,7 @@
     install.packages("phylocanvas")
     quit() 
     ```
-6. Install [Kaphi](https://github.com/PoonLab/Kaphi) by following its [INSTALL.md](https://github.com/PoonLab/Kaphi/blob/master/INSTALL.md).
+5. Install [Kaphi](https://github.com/PoonLab/Kaphi) by following its [INSTALL.md](https://github.com/PoonLab/Kaphi/blob/master/INSTALL.md).
     
     
 ## KaphiShiny Installation Procedure (Ubuntu and Mac):
